@@ -1454,7 +1454,13 @@ Plantilla por reino, en el orden de 15.10:
   11. Teletransporte desbloqueado.
   12. QA matricial de la Fase 5 en el reino.
   13. "verify:fase 12.<reino>".
-Al final: la Torre del Eclipse (10 pisos) y la Torre de Cristal (5 pisos).
+Al final: las Llanuras del Eclipse (cielo con el agujero negro, 12.17;
+estatuas arrodilladas, 12.18; rocas flotantes, 12.19), la Torre del Eclipse
+(10 pisos) y la Torre de Cristal (5 pisos). Colosos, rocas flotantes y el
+agujero negro tenue se añaden en cada reino según 12.18 y 12.19.
+QA de maravillas: capturas del agujero negro en 3 ángulos, de los colosos
+de Kharzim en la bruma naranja y de las islas de Ixmaral con cascadas,
+puntuadas con la rúbrica de entorno (≥ 8).
 
 --------------------------------------------------------------------------------
 FASE 13. SISTEMAS AVANZADOS (en orden de valor) → FIN
@@ -4320,8 +4326,9 @@ cada reino. Tono: épico y melancólico, frases cortas, nada de humor moderno.
   | 5 | Tierras Heladas de Nordhrim /  | tundra, glaciares, auroras,       | 85-110  | Nv90 Ymrik · Nv100 Lady Frostveil ·    |
   |   | Fortaleza Nordhrim             | Torre de Cristal (5 pisos)        |         | Nv110 Hrimvald (RAID)                  |
   | 6 | Volcán Ignaroth / Forjaroja    | lava, ceniza, obsidiana           | 110-135 | Nv120 Kargath · Nv130 Ignarath (RAID)  |
-  | 7 | Torre del Eclipse (desde       | 10 pisos                          | 135-150 | Nv140 Seraphel (piso 5) ·              |
-  |   | Aurelion)                      |                                   |         | Nv150 Nyx'Thara (piso 10, RAID final)  |
+  | 7 | Llanuras del Eclipse y Torre   | cielo con AGUJERO NEGRO (12.17),  | 135-150 | Nv140 Seraphel (piso 5) ·              |
+  |   | del Eclipse (desde Aurelion);  | rocas flotantes, colosos          |         |                                        |
+  |   | la Torre tiene 10 pisos        | arrodillados                      |         | Nv150 Nyx'Thara (piso 10, RAID final)  |
   - Cada reino tiene: ciudad pacífica, de 3 a 5 zonas de caza por subrango,
     catacumba, música, ambiente, LUT, niebla, clima y probabilidad de
     aurora propios (12 y 13).
