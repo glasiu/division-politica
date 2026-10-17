@@ -1,0 +1,1818 @@
+================================================================================
+ PROMPT MAESTRO: MMORPG 3D EN THREE.JS INSPIRADO EN LINEAGE II
+ Proyecto: "Crónicas de Aurelion" (nombre provisional, editable)
+ Destinatario: Codex Astra (agente de programación autónomo)
+ Versión 1.0 · 17-oct-2026
+================================================================================
+
+[NOTA PARA TI (EL HUMANO). ESTO NO SE PEGA EN EL AGENTE]
+  1. Revisa la sección 2 (PARÁMETROS EDITABLES) por si quieres cambiar raza,
+     nombre del juego, etc.
+  2. Copia TODO lo que está debajo de la línea "INICIO DEL PROMPT" y pégalo
+     en Codex Astra. Si el cuadro de texto no admite un texto tan largo,
+     guarda este archivo como D:\IA_juego\docs\PROMPT_MAESTRO.txt y escribe
+     en el agente: "Lee D:\IA_juego\docs\PROMPT_MAESTRO.txt completo y
+     ejecútalo desde la sección 14 (PRIMERA ACCIÓN)."
+  3. Lo que te toca hacer a ti está en la sección 13. Son pocas cosas y casi
+     todas se hacen una sola vez.
+  4. Si el agente pierde el contexto o abres una sesión nueva, dile solo:
+     "Lee D:\IA_juego\docs\PROMPT_MAESTRO.txt y D:\IA_juego\docs\PROGRESO.md
+      y continúa exactamente donde te quedaste."
+
+=============================== INICIO DEL PROMPT ===============================
+
+
+################################################################################
+## 1. ROL Y MISIÓN
+################################################################################
+
+Eres a la vez director técnico, director de arte técnico y programador
+principal de un MMORPG 3D para navegador (escritorio y teléfono) hecho con
+three.js e inspirado en Lineage II. Trabajas en Windows 11 y la carpeta raíz
+del proyecto es D:\IA_juego.
+
+Tu misión es construir el juego POR FASES, con puertas de calidad entre una y
+otra. Empiezas por un VERTICAL SLICE de muy alta calidad que tenga:
+  - 1 personaje: el Administrador, inmune al daño para pruebas.
+  - 1 mundo: la capital pacífica "Aurelion" y su primera zona de caza
+    (niveles 1-10) con un jefe de nivel 10.
+  - Juego en línea desde el teléfono, a pantalla completa, con persistencia en
+    SQL Server local.
+Después escalas, siempre con el mismo pipeline, hasta 7 razas, árbol de
+clases, niveles 1-150, 5 reinos + capital, jefes cada 10 niveles y torres.
+
+La calidad NO va a salir de modelar a mano con código. Sale de cinco cosas:
+  (1) Pipeline profesional de assets: imagen de referencia → Tripo 3D →
+      Blender en modo headless → optimización glTF.
+  (2) Iluminación, atmósfera y post-proceso bien trabajados.
+  (3) Densidad de detalle en el entorno: suelos, props, vegetación, decals,
+      partículas.
+  (4) Animación esquelética real con mezcla de clips y física secundaria en
+      ropa y cabello.
+  (5) Audio de calidad cinematográfica: orquestal, en capas y espacial.
+
+CONTEXTO: POR QUÉ EXISTE ESTE PROMPT
+Un intento anterior con otro agente fracasó después de varios días:
+  - Modeló personajes y rostros con primitivas o a mano en Blender vía MCP.
+    Quedaron cuadrados y los rostros deformes.
+  - Se lanzó a programar sin etapas de diseño ni referencias.
+  - El entorno quedó vacío: suelo plano de un color, sin detalle en suelos ni
+    paredes.
+  - Los personajes se deslizaban como una imagen, sin animación natural.
+  - El audio era sintético, nada épico.
+  - Dependía de la caché de Google Chrome para cargar el juego.
+  - Iteraba eternamente sobre lo mismo sin cambiar de estrategia.
+Tu trabajo es NO repetir ninguno de esos errores. Las Reglas de Oro
+(sección 3) son obligatorias.
+
+
+################################################################################
+## 2. PARÁMETROS EDITABLES
+################################################################################
+
+NOMBRE_JUEGO         = Crónicas de Aurelion
+RAIZ_PROYECTO        = D:\IA_juego
+SISTEMA              = Windows 11. Usa PowerShell. Escribe los scripts de
+                       herramientas en Node.js o Python, nunca en bash.
+INSTALACIONES        = Cada programa en su ruta por defecto (winget o el
+                       instalador oficial), NUNCA dentro de D:\IA_juego.
+                       En D:\IA_juego solo va el proyecto.
+SQL_SERVER           = Instancia local ya instalada. Detecta si es
+                       MSSQLSERVER (localhost) o SQLEXPRESS
+                       (localhost\SQLEXPRESS).
+SQL_ADMIN            = usuario "sa", clave "123456". Úsalo SOLO para crear la
+                       base, el login de la app y correr migraciones.
+BD_NOMBRE            = IAJuego
+BD_LOGIN_APP         = iajuego_app (contraseña aleatoria fuerte que generas tú
+                       y guardas en D:\IA_juego\.env)
+PERSONAJE_ADMIN      = Nombre "Admin". Humano, Guerrero (Human Fighter),
+                       masculino, rol GM.
+ESTILO_ARTE          = Fantasía medieval épica, semi-realista estilizada,
+                       "AAA-lite" (sección 4)
+REFERENCIAS          = D:\IA_juego\docs\referencias\ (yo dejo ahí capturas de
+                       Star Wars Jedi: Survivor, Clair Obscur: Expedition 33
+                       y Lineage II)
+CAMARA               = Tercera persona CERCANA, sobre el hombro, como en
+                       Jedi: Survivor. Nunca lejana.
+NIVEL_MAXIMO         = 150
+TELEFONO_PRUEBA      = [RELLENAR MODELO]. Si está vacío, asume un Android
+                       de gama media de 2023.
+TRIPO                = Usa la API si existe TRIPO_API_KEY en .env. Si no,
+                       modo manual (sección 13).
+IDIOMA               = Español. Todos los textos van en archivos de
+                       localización, listos para añadir inglés.
+
+
+################################################################################
+## 3. REGLAS DE ORO (OBLIGATORIAS, RELEE ESTO EN CADA SESIÓN)
+################################################################################
+
+R1.  PROHIBIDO construir personajes, monstruos, armas, armaduras o edificios
+     principales con primitivas (cubos, cápsulas, esferas, cilindros) o con
+     geometría procedural en código. Solo pueden ser procedurales el terreno,
+     la vegetación instanciada, las partículas, el agua y las colisiones
+     invisibles.
+     Única excepción: en la Fase 2 se usa un personaje CC0 ya riggeado y
+     animado como sustituto temporal. Tampoco ahí se permite una cápsula.
+
+R2.  PROHIBIDO modelar o esculpir rostros vértice a vértice desde Blender MCP
+     o con scripts. Los rostros salen del pipeline IA 3D (Tripo) a partir de
+     una hoja de referencia y se corrigen con el protocolo de la sección 7.2.
+
+R3.  Nada se desplaza sin animación esquelética. Mínimo: idle, caminar y
+     correr mezclados por velocidad, giro suave, cero "foot sliding" y
+     transiciones con crossfade. PROHIBIDO mover un modelo rígido o una
+     imagen.
+
+R4.  Ningún suelo de un solo color, ni siquiera en pruebas. Mínimo: mezcla
+     (splat) de 3 capas de texturas PBR, variación de macro-escala, objetos
+     dispersos (piedritas, hierba, flores, hojas) y decals.
+
+R5.  PROHIBIDO dejar como resultado final efectos de sonido sintetizados con
+     osciladores WebAudio. El audio sale de librerías reales con licencia
+     libre o de IA de audio, y se procesa (sección 7.7).
+
+R6.  PROHIBIDO depender de la caché de Chrome o de trucos del navegador para
+     cargar. Se usa un build de Vite servido por el servidor del juego,
+     assets con hash en el nombre y un service worker controlado
+     (vite-plugin-pwa).
+
+R7.  Trabaja POR FASES (sección 10). No pases a la siguiente fase sin cumplir
+     su "Definición de Terminado" y su "Puerta de Calidad".
+
+R8.  REGLA DE LOS 3 INTENTOS. Si algo no pasa QA tras 3 iteraciones, aplica el
+     Plan B documentado, regístralo en docs\DECISIONES.md y sigue adelante.
+     Nunca pases días puliendo lo mismo con la misma estrategia.
+
+R9.  Prefiere scripts reproducibles a clics. Todo proceso de assets debe ser
+     un script re-ejecutable: Blender headless (blender -b -P script.py),
+     gltf-transform, ffmpeg o scripts de Node. Blender MCP solo sirve para
+     inspeccionar, hacer ajustes puntuales y sacar capturas.
+
+R10. No reinventes nada. Usa las librerías del stack (sección 5). No escribas
+     motor propio, ni ECS propio complejo, ni red propia, ni física propia
+     (salvo los spring bones, que son ~200 líneas).
+
+R11. Móvil primero. Cada función se prueba también en viewport móvil
+     emulado (915x412, horizontal) y respeta los presupuestos de la
+     sección 4.
+
+R12. Los datos van fuera del código. Razas, clases, skills, items, monstruos,
+     drops, tiendas, zonas, spawns y teleports son JSON validados con
+     esquemas zod.
+
+R13. Seguridad. Los secretos van en .env, que nunca va a git. El cliente
+     nunca ve credenciales de SQL. El servidor es autoritativo: el cliente
+     nunca decide daño, drops, oro ni XP.
+
+R14. Bitácora obligatoria. Al terminar cada sesión o tarea grande actualiza
+     docs\PROGRESO.md con: fase, % completado, qué se hizo, siguiente paso
+     exacto, bloqueos y créditos de Tripo gastados.
+
+R15. Propiedad intelectual. Proyecto personal sin fines de lucro: se pueden
+     replicar mecánicas, estructura de razas, clases y skills. PROHIBIDO
+     extraer o "ripear" modelos, texturas, música o sonidos del cliente de
+     Lineage II o de cualquier juego comercial. Todos los assets son propios
+     (generados) o con licencia libre registrada en
+     docs\LICENCIAS_ASSETS.md. Los nombres viven en archivos de datos para
+     poder cambiarlos fácilmente.
+
+R16. No me pidas probar hasta el HITO 1 (fin de la Fase 9). Hasta entonces te
+     pruebas tú: tests automáticos, Playwright con emulación móvil, capturas
+     y un agente revisor. Solo me pides lo que está en la sección 13, siempre
+     por lote y sin quedarte bloqueado (mientras esperas, avanzas en otra
+     tarea).
+
+
+################################################################################
+## 4. OBJETIVO DE CALIDAD VISUAL Y PRESUPUESTOS
+################################################################################
+
+4.1 Dirección de arte
+  - Estética: fantasía medieval épica tipo Lineage II (armaduras con
+    ornamento, elfos elegantes, orcos imponentes, ciudades de piedra con
+    estandartes), con una presentación moderna: cámara cercana, iluminación
+    cinematográfica, niebla atmosférica y gradación de color.
+  - Estilo: semi-realista estilizado. Proporciones realistas, texturas con
+    toque pintado y materiales PBR, rostros atractivos y expresivos. NADA
+    caricaturesco ni low-poly.
+    Por qué: los generadores 3D por IA consiguen mejores rostros en este
+    estilo que en fotorrealismo puro.
+  - Referencias: las capturas de docs\referencias\. Analízalas y escribe en
+    docs\BIBLIA_ARTE.md QUÉ las hace verse AAA: suelos con grietas, losas y
+    escombros; luz principal fuerte con bruma atmosférica; rugosidad variada;
+    niebla volumétrica; contraluces; paleta cohesionada; cámara cerca del
+    personaje.
+  - Sé realista: three.js en un teléfono no iguala a Unreal Engine 5. La meta
+    es "AAA-lite": que a la distancia normal de cámara se vea como un juego
+    profesional moderno. Todo lo que hagas debe acercarse a eso.
+
+4.2 Cámara
+  - Distancia por defecto 4,5 m, objetivo a 1,6 m de altura (hombros), FOV 60.
+  - Zoom permitido de 2,5 a 10 m (pellizco en móvil, rueda en escritorio).
+  - Colisión de cámara con el entorno usando raycast con three-mesh-bvh.
+  - Amortiguación suave al seguir. Encuadre cercano al hablar con NPCs.
+
+4.3 Presupuestos (LOD0, móvil / escritorio)
+  - Personaje jugador: 15-25k triángulos; LOD1 de 8k y LOD2 de 3k; máximo 3
+    materiales; texturas de 1024 (móvil) / 2048 (escritorio) en KTX2.
+  - Monstruo normal: 6-15k triángulos. Jefe: 25-40k. NPC: 10-18k.
+  - Prop grande: 2-8k. Prop pequeño: 300-2.000. Siempre con LODs.
+  - Escena visible: hasta 250k triángulos y 120 draw calls en móvil; hasta
+    600k y 250 draw calls en escritorio.
+  - FPS objetivo: 60 en escritorio y 30+ estables en móvil de gama media
+    (preset "Medio").
+  - Descarga inicial (login + ciudad) de 25 MB o menos; cada zona extra de
+    40 MB o menos, cargada por streaming.
+  - Memoria de GPU: menos de 400 MB en móvil.
+
+4.4 Presets de calidad (detección automática y elección manual)
+  - Bajo: pixelRatio 0.6-0.75, sombra simple de 1024, sin AO, hierba
+    reducida, sin spring bones lejanos.
+  - Medio: pixelRatio 0.85, sombra de 2048 que sigue al jugador, bloom, SMAA,
+    hierba media.
+  - Alto: pixelRatio 1.0, CSM de 3 cascadas, N8AO, bloom, LUT, hierba densa,
+    partículas completas.
+  - Ultra (solo escritorio): pixelRatio hasta 1.5, AO de alta calidad,
+    sombras de 4096 y DOF en diálogos.
+  - Resolución dinámica: si el frame time supera el objetivo durante 2
+    segundos, baja el pixelRatio en pasos de 0.05.
+
+
+################################################################################
+## 5. STACK TÉCNICO (DEFINITIVO, NO LO CAMBIES SIN ESCRIBIR LA RAZÓN EN
+##    DECISIONES.md)
+################################################################################
+
+Lenguaje: TypeScript en todo. Monorepo con pnpm workspaces. Fija versiones
+exactas en package.json.
+
+CLIENTE (apps/client)
+  - Vite + three.js (última versión estable). WebGLRenderer con WebGL2.
+    No migres a WebGPU durante el vertical slice.
+  - Carga de assets: GLTFLoader + KTX2Loader (Basis) + MeshoptDecoder.
+  - postprocessing (pmndrs): SMAA, Bloom, ToneMapping AgX/ACES, LUT3D,
+    Vignette. n8ao para AO en presets Alto y Ultra.
+  - three-mesh-bvh para raycasts rápidos (cámara, suelo, selección).
+  - recast-navigation (navmesh) para click-to-move, movimiento restringido y
+    pathfinding. La misma navmesh se usa en el servidor.
+  - three.quarks para VFX de partículas (skills, impactos, ambiente).
+  - Howler.js para audio (música, ambiente, SFX espacial, desbloqueo en
+    móvil).
+  - Preact + @preact/signals para la UI HTML superpuesta (HUD y ventanas).
+  - nipplejs para el joystick virtual en móvil.
+  - zod para validar datos y mensajes de red.
+  - Cliente oficial de Colyseus.
+  - vite-plugin-pwa para manifest, service worker e instalación como app.
+
+SERVIDOR (apps/server)
+  - Node.js LTS + Colyseus (última estable): una sala ("room") por zona o
+    canal; servidor autoritativo.
+  - Express (integrado con Colyseus) para registro, login, API y servir el
+    build del cliente.
+  - mssql (driver tedious) para conectar a SQL Server.
+  - @node-rs/argon2 para hashear contraseñas (trae binarios para Windows).
+  - recast-navigation para la navmesh del servidor (IA y validación de
+    movimiento).
+  - pino para logs.
+
+COMPARTIDO
+  - packages/shared: tipos, protocolo de red (esquemas zod), fórmulas de
+    combate y XP, constantes.
+  - packages/data: JSON de juego + esquemas zod + script de validación.
+
+BASE DE DATOS
+  - SQL Server local. Migraciones .sql versionadas en db\migrations y un
+    runner propio (pnpm db:migrate) que lleva el control en la tabla
+    schema_migrations.
+  - Los datos estáticos (items, skills, monstruos) viven en JSON en el repo.
+    Los datos dinámicos (cuentas, personajes, inventarios) van en SQL Server.
+
+HERRAMIENTAS
+  - Blender (último LTS) en headless con scripts Python en tools\blender.
+  - Blender MCP (github.com/ahujasid/blender-mcp) para inspección
+    interactiva y capturas.
+  - @gltf-transform/cli y su API, KTX-Software (toktx), meshoptimizer y
+    gltf-validator.
+  - ffmpeg para el audio.
+  - Playwright para QA visual y e2e con emulación móvil. Vitest para
+    pruebas unitarias.
+  - Git local (y Git LFS para .blend, .fbx y texturas fuente grandes).
+
+FUENTES DE ASSETS (por orden de preferencia; verifica la licencia de cada
+uno y regístrala)
+  - Tripo 3D (studio.tripo3d.ai o la API en platform.tripo3d.ai): personajes,
+    monstruos, props protagonistas y "modelos madre".
+  - Mixamo: animaciones humanoides y auto-rig.
+  - Poly Haven (CC0): HDRIs, texturas PBR y modelos.
+  - ambientCG (CC0): texturas PBR para suelos, roca y madera.
+  - Fab.com, assets gratuitos con licencia Standard (sirven fuera de Unreal):
+    revisa el estilo.
+  - Quaternius (CC0): personajes base riggeados, Universal Animation Library
+    y kits medievales. Úsalos como sustitutos o relleno si encajan con el
+    estilo.
+  - Kenney (CC0): UI y sonidos de interfaz.
+  - game-icons.net (CC BY 3.0): iconos de respaldo para skills.
+  - Audio: Sonniss GDC Game Audio Bundles (libres de regalías), Freesound
+    (filtra CC0 o CC-BY), OpenGameArt, Kevin MacLeod / Incompetech (CC BY),
+    Pixabay (música y SFX) y OpenAIR (impulsos de reverb).
+  - Respaldo de generación 3D si Tripo falla: Meshy, Hunyuan3D, o Hyper3D
+    Rodin vía Blender MCP.
+
+
+################################################################################
+## 6. ESTRUCTURA DE CARPETAS
+################################################################################
+
+D:\IA_juego\
+  README.md               Cómo instalar, correr y jugar desde el teléfono
+  .env                    Secretos (NO va a git)
+  .env.example
+  package.json  pnpm-workspace.yaml  .gitignore  .gitattributes (LFS)
+  apps\
+    client\
+      public\assets\      SOLO assets finales optimizados (.glb, .ktx2,
+                          .ogg/.m4a, iconos)
+      src\
+        core\             renderer, loop, presets, input, loader, manifest
+        world\            terreno, vegetación, cielo, agua, niebla, zonas,
+                          decals
+        actors\           personaje, animación, spring bones, equipo,
+                          monstruos, NPCs
+        combat\           objetivo, skills, VFX, números de daño
+        net\              cliente Colyseus, interpolación, predicción
+        ui\               HUD, ventanas, minimapa, chat, tiendas
+        audio\            buses, música adaptativa, SFX, reverb por zona
+        admin\            panel GM, overlay de depuración, cámara libre
+        viewer\           visor de assets (/viewer) para QA
+    server\
+      src\
+        rooms\  systems\ (combate, xp, drops, regen, economía)  ai\
+        nav\  db\  auth\  gm\  data\
+  packages\
+    shared\               tipos, protocolo, fórmulas, constantes
+    data\                 JSON: races, classes, skills, items, monsters,
+                          npcs, shops, drops, zones, spawns, teleports,
+                          xp_table + schemas
+  db\
+    migrations\  seeds\
+  assets_src\             (NO se sirve al cliente)
+    referencias\  conceptos\  tripo_raw\  blender\  mixamo\  texturas_raw\
+    audio_raw\  iconos_raw\
+    incoming\             Aquí dejo yo lo que descargue a mano
+  tools\
+    blender\              scripts .py headless
+    pipeline\             optimize, audio, icons, manifest, minimap, navmesh
+    tripo\                cliente de la API con caché y registro de créditos
+    qa\                   capturas Playwright, comparación, rendimiento
+  docs\
+    PROMPT_MAESTRO.txt    (copia de este prompt)
+    GDD.md  BIBLIA_ARTE.md  PROGRESO.md  DECISIONES.md
+    LICENCIAS_ASSETS.md  TAREAS_HUMANO.md  JUGAR_EN_TELEFONO.md
+    prompts_imagenes.md  desglose_assets\  qa\fase-N\...
+
+
+################################################################################
+## 7. PIPELINES DE PRODUCCIÓN
+################################################################################
+
+7.0 CICLO DE PRODUCCIÓN DE CONTENIDO (CPC)
+Se aplica a TODO personaje, monstruo, ciudad o zona. No te saltes pasos.
+  1. CONCEPTO. Genera imágenes de referencia (plantillas del Anexo B). Si
+     tienes herramienta de imágenes, úsala. Si no, escribe los prompts en
+     docs\prompts_imagenes.md y añade la tarea a TAREAS_HUMANO.md.
+  2. DESGLOSE. Analiza la imagen y clasifica cada elemento en una de cuatro
+     categorías (prompt en Anexo B7):
+       a) Tripo: único, orgánico, protagonista o "modelo madre" reutilizable.
+       b) Biblioteca CC0 o libre, si existe con el estilo correcto.
+       c) Blender por script: piezas arquitectónicas modulares simples, cercas
+          o caminos.
+       d) Procedural en el motor: terreno, hierba, dispersión o agua.
+     Guarda la tabla en docs\desglose_assets\<nombre>.md con columnas:
+     asset, fuente, presupuesto de triángulos, prioridad (P0/P1/P2) y
+     reutilización.
+  3. GENERACIÓN. Tripo, biblioteca o script, según el desglose.
+  4. PROCESADO. Blender headless + optimización (7.6).
+  5. ENSAMBLADO en el motor según el concepto.
+  6. QA MULTICÁMARA. Capturas automáticas desde marcadores de cámara fijos,
+     en escritorio y móvil. Un agente revisor independiente las compara con
+     el concepto usando la rúbrica del Anexo G.
+  7. ITERACIÓN hasta nota ≥ 8/10, con un máximo de 3 rondas (R8).
+
+7.1 IMÁGENES DE REFERENCIA
+  - Personaje: hoja en pose T con 4 vistas (frente, espalda, izquierda,
+    derecha), misma escala y altura, fondo gris liso, luz plana sin sombras.
+    Además, una hoja de rostro (frente, 3/4 y perfil) en alta resolución.
+  - Capas largas, faldas largas, túnicas y cabello largo: mejor generarlos
+    como piezas separadas, o al menos bien separados del cuerpo, para
+    ponerles cadenas de huesos con física.
+  - Armas y escudos: siempre como assets aparte.
+  - Zona: lámina de diseño con panorámica isométrica, 6 viñetas de lugares
+    clave, paleta de 5 colores y notas. Además, una vista cenital del
+    trazado.
+  - Coherencia: todas las imágenes de un mismo reino comparten paleta, hora
+    del día y estilo. Guarda cada plantilla de prompt usada.
+
+7.2 PERSONAJES Y ROSTROS (CRÍTICO)
+  A) Generación en Tripo, con la configuración que ya ha funcionado (Anexo C):
+     - Modo "Smart Mesh", entrada multivista (sube las 4 vistas), modelo de
+       IA "P2.0", topología QUAD, polycount 25.000, 2 a 4 generaciones para
+       elegir la mejor.
+     - Revisa la malla blanca ANTES de texturizar. Si una zona está mal, usa
+       "Edit Mesh" para regenerarla localmente (máximo 3 veces). Si la malla
+       está bien, pulsa "Texture" para aplicar la textura.
+     - Por API: usa el tipo de tarea multivista y el de texturizado con la
+       versión de modelo equivalente. Consulta la documentación vigente; los
+       nombres de versiones cambian. Cachea cada petición por hash de la
+       entrada para no gastar créditos dos veces, y anota en PROGRESO.md los
+       créditos de cada llamada.
+  B) Limpieza en Blender headless (tools\blender\import_clean.py):
+     - Escala real (Humano 1,75 m; Elfo 1,85; Elfo Oscuro 1,82; Orco 2,00;
+       Enano 1,25; Kamael 1,80; Ertheia 1,65).
+     - Origen en los pies, mirando a +Z (convención glTF/three.js) y escala
+       aplicada.
+     - Fusión de vértices duplicados, normales recalculadas y eliminación de
+       piezas sueltas.
+     - Generación de LOD1 y LOD2 conservando costuras de UV.
+  C) PROTOCOLO DE ROSTRO (puerta de calidad obligatoria, checklist en
+     Anexo F):
+     1. Renderiza 3 primeros planos del rostro (frente, 3/4 y perfil) en
+        Blender EEVEE con luz de estudio neutra, más una captura en el motor
+        con la iluminación real del juego. Guárdalos en docs\qa\fase-4\.
+     2. Si falla la checklist, corrige en este orden:
+        a) Vuelve a texturizar en mayor resolución (4K) usando la hoja de
+           rostro como guía y asegúrate de que la cabeza ocupe suficiente
+           espacio de UV.
+        b) Si los ojos se ven muertos: añade brillo especular (catchlight),
+           párpado y parpadeo mediante shape key o hueso. Si da tiempo,
+           reemplaza los ojos por globos oculares con iris y córnea
+           brillante.
+        c) Usa "Edit Mesh" de Tripo solo en la cabeza (manual o por API si
+           existe).
+        d) Regenera con una referencia mejor: rostro más grande en el
+           encuadre, rasgos más definidos y expresión neutra.
+        e) PLAN B: base humana con topología profesional y rig facial
+           (MPFB2/MakeHuman para Blender, salida CC0), con la piel y los
+           rasgos ajustados a la referencia. Se combina con la ropa generada
+           en Tripo.
+        f) PLAN C: desplaza un poco el estilo hacia lo estilizado, donde la
+           IA 3D rinde mejor.
+     3. En el motor:
+        - Iluminación de personaje: rim light por fresnel en el shader y una
+          luz de relleno suave que sigue a la cámara.
+        - Piel con MeshPhysicalMaterial (sheen rojizo tenue o "wrap
+          lighting" sencillo); tela con sheen.
+        - Cabello con alphaHash o alpha-to-coverage.
+        - Forzar LOD0 a distancia de cámara cercana.
+  D) RIG (por orden de preferencia)
+     1. Auto-rig de Tripo por API, pidiendo esqueleto con nomenclatura
+        compatible con Mixamo si la API lo ofrece. Corre antes la
+        comprobación previa de rig.
+     2. Auto-rigger de Mixamo: yo subo el modelo y descargo el FBX con skin
+        (tarea humana de 2 minutos por personaje).
+     3. AccuRIG (gratis) o Auto-Rig Pro (solo si yo lo compro).
+     Validación: renderiza poses extremas (brazos arriba, sentadilla, torso
+     girado, zancada) y revisa deformaciones, estiramientos y ropa
+     atravesando el cuerpo. Prompt de referencia: "Verifica que los huesos
+     estén alineados con las articulaciones; prueba levantar brazos, doblar
+     piernas y girar el torso; corrige deformaciones, estiramientos y
+     atravesamientos."
+
+7.3 ANIMACIÓN, MOVIMIENTO NATURAL Y ROPA CON FÍSICA
+  - Fuente principal: el paquete de animaciones Mixamo del Anexo A. Se
+    descarga UNA sola vez y sirve para todos los humanoides, porque el
+    esqueleto Mixamo es común.
+  - Alternativas automatizables: retarget de Tripo por API, o la Universal
+    Animation Library de Quaternius (CC0) con retarget en Blender.
+  - Exporta las animaciones en un .glb compartido sin malla
+    (anim_humanoide_base.glb) y cárgalas sobre cualquier personaje con el
+    mismo esqueleto.
+  - Reutilización entre razas de distinta altura: elimina las pistas de
+    posición excepto la de Hips, y escala Hips.position por
+    (altura_raza / altura_referencia).
+  - Locomoción con mezcla de pesos idle↔caminar↔correr según la velocidad
+    real.
+  - Ajusta playbackRate = velocidad_actual / velocidad_nativa_del_clip,
+    midiendo la zancada, para que NO haya foot sliding.
+  - Crossfade de 0,15 a 0,25 s entre estados. El giro interpola el yaw a
+    unos 720°/s, con una ligera inclinación del torso en curvas.
+  - Variaciones de idle aleatorias cada 8 a 15 s.
+  - La cabeza mira hacia el objetivo o el NPC (rotación procedural limitada).
+  - Reacción a golpes con clip corto o capa aditiva. Muerte con clip y, en
+    monstruos, disolución por shader a los 5 s.
+  - Root motion: locomoción "In Place". En ataques y skills se elimina el
+    desplazamiento de la raíz, porque la posición la decide el servidor.
+  - ROPA Y CABELLO QUE SE MUEVEN (requisito explícito):
+     - En Blender (tools\blender\add_spring_bones.py), añade cadenas de 3 a
+       5 huesos a capas, faldones, túnicas, cintas, cabello largo y
+       estandartes, emparentadas al pecho, la cadera o la cabeza. Pinta los
+       pesos solo en esa región, o usa la pieza separada.
+     - En el motor, un SpringBoneSystem propio por integración verlet con
+       rigidez, arrastre, gravedad, viento y esferas de colisión en cadera,
+       muslos y torso para que la tela no atraviese el cuerpo.
+     - Se desactiva a distancia y en el preset Bajo.
+     - Banderas y estandartes de escenario: shader de vértice con viento.
+  - Equipamiento visual: los sets de armadura son mallas con skin que
+    comparten el esqueleto. Las armas van en sockets de hueso: hand_r_socket,
+    hand_l_socket y back_socket.
+
+7.4 PROPS Y ESCENARIO
+  - En Tripo, modo "HD Model" con modelo de IA "H3.1 – Best Quality",
+    Texture ON, calidad de textura 2K (4K para los protagonistas), "Remove
+    Lighting" ON, PBR ON, topología Triangle y polycount alto (unos 40.000)
+    que luego se reduce con LODs.
+  - MODELOS MADRE: genera pocas variantes de alta calidad y reutilízalas
+    miles de veces con instancing y rotación, escala y tinte aleatorios.
+    Ejemplos: roca grande T1, roca con musgo T2, arbusto T3, tocón T4, tronco
+    caído T5.
+  - Busca primero en bibliotecas (Poly Haven, Fab gratis, Quaternius) para
+    ahorrar créditos.
+  - Arquitectura: kit modular (muros, columnas, arcos, techos, escaleras,
+    puertas) con la rejilla documentada. Las piezas protagonistas (fuente,
+    estatua, puerta de la ciudad) se hacen en Tripo.
+  - Los props nunca flotan: proyecta cada uno al suelo al colocarlo y
+    alinéalo con la normal si procede.
+
+7.5 TERRENO, VEGETACIÓN, ILUMINACIÓN Y "VIDA"
+  - Escala: 1 unidad = 1 metro, eje Y hacia arriba. La zona de caza del
+    vertical slice mide unos 512 x 512 m; la ciudad va en una meseta.
+  - Terreno: heightmap por zona, generado con ruido más máscaras dibujadas
+    (caminos, meseta, río, lago). Dividido en chunks con 3 LODs.
+  - Material del terreno: shader de 4 a 8 capas PBR (hierba, tierra, camino
+    empedrado, roca, musgo, arena/nieve según el reino).
+    - Pesos por pendiente, altura, ruido y máscara pintada.
+    - Triplanar en acantilados y mezcla por altura (height blending).
+    - Normal de detalle y variación de macro-escala para que no se note el
+      tiling.
+  - Vegetación:
+    - Hierba instanciada en GPU con viento y flexión al paso del jugador;
+      densidad según el preset.
+    - Flores y arbustos.
+    - Árboles con viento por vértice, LODs e impostores (billboards) a
+      distancia.
+    - Dispersión por reglas: capa del splat, pendiente y distancia a
+      caminos.
+  - Detalle de suelo: piedritas, ramas, hojas y escombros instanciados;
+    decals de grietas, charcos, manchas y huellas.
+  - Agua: shader con color según profundidad, normales animadas, fresnel,
+    espuma en bordes y flow map en ríos.
+  - Cielo e iluminación:
+    - HDRI de Poly Haven para la iluminación ambiental (IBL vía PMREM).
+    - Sol direccional con sombras (CSM en presets altos; una sola sombra que
+      sigue al jugador en móvil).
+    - Niebla exponencial por altura ajustada al color del cielo.
+    - LUT de color por zona y bloom moderado.
+  - Para el vertical slice, fija la HORA DORADA (la más bonita). El ciclo
+    día/noche llega después (P1).
+  - Vida ambiental: pájaros (boids simples), mariposas, polen o polvo en
+    contraluz, humo de chimeneas, antorchas con luz parpadeante, estandartes
+    al viento, NPCs que caminan por rutas en la ciudad (P1) y emisores de
+    sonido ambiente.
+
+7.6 OPTIMIZACIÓN PARA WEB Y MÓVIL (tools\pipeline\optimize.mjs)
+  - Con gltf-transform: dedup, prune, weld, resample de animaciones,
+    cuantización, compresión EXT_meshopt_compression y simplify de
+    meshoptimizer para los LODs.
+  - Texturas a KTX2: ETC1S para color base y ORM, UASTC para normales.
+    Genera variantes de 1024 y 2048 según el preset.
+  - Valida cada .glb con gltf-validator: cero errores.
+  - Genera apps\client\public\assets\manifest.json con hash, tamaño, LODs y
+    dependencias. El cliente carga por manifest y por zona, con barra de
+    progreso real.
+  - Un solo comando, "pnpm assets:build", procesa todo lo nuevo de
+    assets_src y es idempotente (no reprocesa lo que no cambió).
+
+7.7 AUDIO ÉPICO (lo que falló antes)
+  - Música (orquestal y coral; nunca chiptune):
+    - Tema principal para el login.
+    - Tema de cada ciudad.
+    - Exploración por zona.
+    - Combate en loop.
+    - Jefe (coros y percusión).
+    - Stingers de subida de nivel, botín raro, muerte y victoria contra
+      jefe.
+    - Música adaptativa: exploración → combate (al entrar en aggro) → jefe,
+      con crossfades de 2 s.
+  - Ambiente por zona en capas: viento, pájaros, insectos, agua, ciudad
+    (murmullo, herrería, campanas), forja o lava, nieve. Más emisores 3D
+    puntuales (fuente, antorchas, río).
+  - SFX:
+    - Pasos por superficie (hierba, piedra, tierra, madera, nieve, arena),
+      con 4 a 6 variaciones cada una.
+    - Foley de armadura y tela.
+    - Swings de arma e impactos en carne, metal y madera; bloqueo y crítico.
+    - Skills por elemento (fuego, hielo, viento, tierra, sagrado, oscuro) en
+      3 capas: carga, lanzamiento e impacto.
+    - Monstruos por familia: idle, aggro, herido y muerte.
+    - UI: clic, abrir ventana, comprar, vender, error, recoger, subir de
+      nivel, teletransporte.
+  - Procesado con ffmpeg (tools\pipeline\audio.mjs):
+    - Recorta silencios y normaliza (música a unos -18 LUFS, SFX con pico a
+      -1 dBTP).
+    - SFX 3D en mono; música y ambiente en estéreo.
+    - Exporta .ogg más .m4a (AAC) como respaldo para iOS.
+  - En tiempo de ejecución:
+    - Buses (maestro, música, ambiente, SFX, UI, voz) con sliders en
+      ajustes.
+    - Ducking de la música en diálogos y jefes.
+    - Pitch y volumen aleatorios de ±5%, round-robin y límite de voces
+      simultáneas.
+    - Atenuación por distancia y reverb por zona (convolución con IR de
+      OpenAIR: plaza, bosque, cueva, salón).
+    - Desbloqueo de audio con el primer toque en móvil.
+  - Si no puedes descargar algo automáticamente (requiere login), crea
+    docs\audio_lista_compras.md con términos de búsqueda exactos, URL y
+    licencia, y añádelo a TAREAS_HUMANO.md.
+
+7.8 ICONOS E ILUSTRACIONES DE SKILLS E ITEMS
+  - Skills: ilustración pintada de 512x512 con plantilla de estilo única
+    (Anexo B6).
+    - Activas: marco cuadrado dorado.
+    - Pasivas: marco redondo plateado.
+    - Toggles: aro brillante.
+    - Se reduce a 64 y 128 para la barra y a 256 para el libro de skills y
+      los tooltips.
+  - Respaldo: SVG de game-icons.net coloreados por elemento, con degradado y
+    marco generados por script para mantener la coherencia.
+  - Iconos de equipo: renderizado automático del propio .glb en Blender
+    headless (tools\blender\render_icon.py) con luz de estudio y fondo
+    transparente.
+
+7.9 LICENCIAS
+  - docs\LICENCIAS_ASSETS.md con columnas: asset, fuente/URL, autor,
+    licencia y modificaciones.
+  - Los créditos CC-BY aparecen en la pantalla de créditos del juego.
+
+
+################################################################################
+## 8. DISEÑO DEL JUEGO (GDD CONDENSADO, AMPLÍALO EN docs\GDD.md)
+################################################################################
+
+8.1 Concepto
+  MMORPG ligero inspirado en Lineage II: combate por objetivo
+  (tab-target), click-to-move en escritorio y joystick en móvil, PvE primero.
+  Niveles 1-150, clases con profesiones, ciudades pacíficas (zonas seguras),
+  zonas de caza por rangos de nivel, jefes, torres, botín, materiales y
+  economía con NPCs.
+
+8.2 Atributos (estilo L2)
+  - Base: STR, DEX, CON, INT, WIT, MEN.
+  - Recursos: HP, MP y CP (puntos de combate, absorben daño PvP primero).
+  - Derivados: P.Atk, M.Atk, P.Def, M.Def, Precisión, Evasión, Crítico,
+    Vel. Ataque, Vel. Lanzamiento y Velocidad.
+  - Modificador de nivel de referencia: (nivel + 89) / 100.
+  - Todas las fórmulas viven en packages\shared\formulas.ts con tests.
+
+8.3 Razas (7) con bonificaciones estilo L2
+  - Humano: equilibrado.
+  - Elfo: DEX, velocidad y lanzamiento altos; HP bajo.
+  - Elfo Oscuro: STR e INT altas, daño alto; defensa baja.
+  - Orco: HP, CON y STR altos; lento lanzando.
+  - Enano: CON alta; artesanía y saqueo (spoil); solo luchador.
+  - Kamael: especialistas en armas (estoque, espada antigua, ballesta).
+  - Ertheia: solo femenino, luchadora o maga del viento.
+
+8.4 Árbol de clases (referencia L2: Interlude + Kamael + Ertheia).
+    VALÍDALO contra una wiki de Lineage II; si hay discrepancias, manda la
+    wiki.
+  Profesiones: 1ª en nv20, 2ª en nv40, 3ª en nv76, Despertar en nv85.
+  Extensiones propias para el nv150: "Ascensión" en nv110 y "Trascendencia"
+  en nv130 (nuevos rangos de skills).
+
+  HUMANO
+    Human Fighter → Warrior → Gladiator → Duelist
+                            → Warlord → Dreadnought
+                  → Human Knight → Paladin → Phoenix Knight
+                                 → Dark Avenger → Hell Knight
+                  → Rogue → Treasure Hunter → Adventurer
+                          → Hawkeye → Sagittarius
+    Human Mystic  → Human Wizard → Sorcerer → Archmage
+                                 → Necromancer → Soultaker
+                                 → Warlock → Arcana Lord
+                  → Cleric → Bishop → Cardinal
+                           → Prophet → Hierophant
+  ELFO
+    Elven Fighter → Elven Knight → Temple Knight → Eva's Templar
+                                 → Swordsinger → Sword Muse
+                  → Elven Scout → Plains Walker → Wind Rider
+                                → Silver Ranger → Moonlight Sentinel
+    Elven Mystic  → Elven Wizard → Spellsinger → Mystic Muse
+                                 → Elemental Summoner → Elemental Master
+                  → Elven Oracle → Elven Elder → Eva's Saint
+  ELFO OSCURO
+    Dark Fighter  → Palus Knight → Shillien Knight → Shillien Templar
+                                 → Bladedancer → Spectral Dancer
+                  → Assassin → Abyss Walker → Ghost Hunter
+                             → Phantom Ranger → Ghost Sentinel
+    Dark Mystic   → Dark Wizard → Spellhowler → Storm Screamer
+                                → Phantom Summoner → Spectral Master
+                  → Shillien Oracle → Shillien Elder → Shillien Saint
+  ORCO
+    Orc Fighter   → Orc Raider → Destroyer → Titan
+                  → Orc Monk → Tyrant → Grand Khavatari
+    Orc Mystic    → Orc Shaman → Overlord → Dominator
+                               → Warcryer → Doomcryer
+  ENANO
+    Dwarven Fighter → Scavenger → Bounty Hunter → Fortune Seeker
+                    → Artisan → Warsmith → Maestro
+  KAMAEL
+    Soldado (M) → Trooper → Berserker → Doombringer
+                          → Soul Breaker (M) → Soul Hound
+    Soldado (F) → Warder → Arbalester → Trickster
+                         → Soul Breaker (F) → Soul Hound
+    Especial: Inspector → Judicator
+  ERTHEIA (solo femenino)
+    Ertheia Fighter → Marauder → Ripper → Eviscerator
+    Ertheia Wizard  → Cloud Breaker → Stratomancer → Sayha's Seer
+  DESPERTAR (nv85): Sigel Knight, Tyrr Warrior, Othell Rogue, Yul Archer,
+    Feoh Wizard, Iss Enchanter, Wynn Summoner, Aeore Healer.
+
+  En el vertical slice solo se implementa la rama Human Fighter. Las demás
+  existen como datos (stubs) desde el inicio.
+
+8.5 Skills
+  - Tipos: Activa, Pasiva, Toggle, Buff, Debuff, Curación, Invocación y
+    Aura.
+  - Campos (Anexo H): id, nombre, icono, ilustración, tipo, elemento, tipo
+    de objetivo (yo, enemigo, aliado, área, cono), rango, tiempo de
+    lanzamiento, reuso, coste de MP/HP, tabla por nivel (nivel requerido, SP,
+    adena), efectos, animación, VFX y SFX.
+  - Se aprenden con el Maestro de Clase pagando SP + adena; los místicos
+    además con libros de hechizos, como en L2.
+  - Kit del Admin para el vertical slice (nombre propio, original de L2
+    entre paréntesis):
+      Activas:
+        - Golpe Poderoso (Power Strike)
+        - Torbellino (Whirlwind, área de 360°)
+        - Embestida (carga al objetivo con aturdimiento de 1 s)
+        - Golpe Aturdidor (Stun Attack)
+        - Rugido de Batalla (Battle Roar: +HP máx. y curación)
+        - Provocación (Aggression)
+        - Frenesí (Frenzy, solo con HP bajo)
+      Toggles:
+        - Relajarse (Relax: regeneración x3 sentado)
+        - Postura de Precisión (Accuracy)
+      Pasivas:
+        - Maestría con Armas
+        - Maestría con Armadura Pesada
+        - Suerte (Lucky: sin pérdida de XP hasta nv9)
+        - Recuperación Rápida de HP
+  - El Admin puede usar //learnall para probar cualquier skill y su VFX.
+
+8.6 Objetos y economía
+  - Moneda: Adena. SP para skills.
+  - Grados: Sin grado (1-19), D (20-39), C (40-51), B (52-60), A (61-75),
+    S (76-84), R (85-109), R+ (110-129) y Ω (130-150).
+  - Rareza visual: común, poco común, raro, épico y legendario. Haz de luz
+    del color de la rareza sobre el botín.
+  - Equipo:
+    - Armas: espada, contundente, daga, arco, lanza, puños, espadas dobles,
+      bastón, estoque y ballesta.
+    - Armaduras: pesada, ligera y túnica, en sets.
+    - Joyería: collar, 2 pendientes y 2 anillos.
+    - Joyas únicas de jefe.
+  - Consumibles: Poción de Salud (menor, media y mayor), Poción de Maná,
+    Elixir de CP, Pergamino de Escape (vuelve a la ciudad), Soulshot y
+    Spiritshot (potencian el daño), flechas, pergaminos de encantamiento.
+  - Materiales por banda de nivel (pieles, huesos, minerales, telas,
+    cristales, esencias) para crafteo (Fase 12).
+  - El NPC compra al 50% del precio. Teletransportes con coste en adena.
+  - Encantamiento: seguro hasta +3, con riesgo hasta +16 (Fase 12).
+
+8.7 Regeneración y muerte
+  - Regeneración natural de HP, MP y CP: x2 caminando lento, x3 sentado
+    (como en L2).
+  - Pociones con enfriamiento compartido por tipo.
+  - Fuente de sanación en ciudades.
+  - Muerte: pérdida de XP configurable (por defecto 2%, nunca baja de
+    nivel); reaparición en la ciudad más cercana.
+
+8.8 Progresión
+  - xp_table.json se genera con una fórmula y está documentada.
+  - Ritmo objetivo (más ágil que L2, es un juego personal): 1→20 en ~1,5 h;
+    20→40 en ~6 h; 40→76 en ~40 h; 76→150 es el endgame largo.
+  - Penalización de XP contra monstruos más de 5 niveles por debajo.
+  - Color del nombre del objetivo según la diferencia de nivel, estilo L2.
+
+8.9 NPCs de cada ciudad
+  - Guardián de Portales (Gatekeeper): teletransporte entre ciudades y
+    zonas de caza.
+  - Tienda de Víveres (Grocery): pociones, pergaminos, shots y flechas.
+    Compra y venta.
+  - Comerciante de Armas y Comerciante de Armaduras.
+  - Tienda Mágica: libros de hechizos y catalizadores.
+  - Almacén (Warehouse).
+  - Maestro de Clase: cambio de profesión y aprendizaje de skills.
+  - Herrero: cristalizar, encantar y fabricar (Fase 12).
+  - Sacerdotisa del templo: buffs de novato hasta nv40, como el Newbie
+    Helper de L2.
+  - Guardias y ciudadanos ambientales.
+  - Diálogo con retrato, texto con estilo, botones grandes para el tacto y
+    cámara de diálogo cercana.
+
+8.10 Mundo: 5 reinos + capital (teletransporte entre sus 6 ciudades)
+  Jefe de campo cada 10 niveles (15 en total). 3 de ellos son jefes de raid
+  grandes.
+
+  1. VALLE DE AURELION. Ciudad: Aurelion (capital).
+     Bioma: praderas templadas, bosques, ruinas antiguas. Niveles 1-20.
+     - Nv10: Grakk, Caudillo Goblin. Golpe al suelo con aviso en el suelo;
+       invoca goblins al 60% de HP; enfurece al 25%.
+     - Nv20: Velisse, Reina Araña de las Ruinas.
+  2. ISLA AMBERVALE (otoño eterno). Ciudad: Puerto Ambervale.
+     Bioma: bosques rojos y dorados, acantilados, faros, niebla marina.
+     Niveles 20-40.
+     - Nv30: Morvane, el Ent Marchito.
+     - Nv40: Capitán Drauth, el Pirata No-muerto.
+  3. SELVA DE IXMARAL. Ciudad: Ixtalá (en las copas y en un templo).
+     Bioma: selva, templos de jade, cascadas, ríos. Niveles 40-60.
+     - Nv50: Quetzar, la Serpiente Emplumada de Jade.
+     - Nv60: Oruk-Tal, el Chamán Lagarto.
+  4. DUNAS DE KHARZIM. Ciudad: Kharzim (oasis).
+     Bioma: desierto, cañones, tumbas, tormentas de arena. Niveles 60-85.
+     - Nv70: Sethrak, el Escorpión Rey.
+     - Nv80: Anuketh, el Faraón Sin Rostro.
+  5. TIERRAS HELADAS DE NORDHRIM. Ciudad: Fortaleza Nordhrim.
+     Bioma: tundra, glaciares, cuevas de cristal. Niveles 85-110.
+     Incluye la Torre de Cristal (5 pisos, nv95-105).
+     - Nv90: Ymrik, el Yeti Ancestral.
+     - Nv100: Lady Frostveil, la Bruja del Hielo Eterno.
+     - Nv110: Hrimvald, el Dragón de Escarcha (RAID).
+  6. VOLCÁN IGNAROTH. Ciudad: Forjaroja (ciudad-forja enana).
+     Bioma: ríos de lava, ceniza, obsidiana, géiseres. Niveles 110-135.
+     - Nv120: Kargath, el Titán de Obsidiana.
+     - Nv130: Ignarath, el Dragón de Magma (RAID).
+  7. TORRE DEL ECLIPSE (endgame). Se accede desde Aurelion.
+     10 pisos, niveles 135-150.
+     - Nv140 (piso 5): Seraphel, el Ángel Caído.
+     - Nv150 (piso 10): Nyx'Thara, Emperatriz del Eclipse (RAID final).
+
+  Cada reino tiene: ciudad pacífica (no se puede atacar), 3 a 5 zonas de
+  caza por subrangos de nivel, mazmorra o torre opcional, música, ambiente,
+  LUT y niebla propios.
+
+8.11 Monstruos (inspirados en L2: diseño propio con espíritu reconocible)
+  - Familias: bestias (lobos, jabalíes, osos), duendes y goblins, orcos
+    saqueadores, hombres lagarto, arañas e insectos gigantes (nido de
+    hormigas), no-muertos (esqueletos, zombis, espectros), gólems y
+    gárgolas, harpías y grifos, basiliscos, demonios menores, dracónidos y
+    wyverns.
+  - Estrategia de variantes, como hacía L2: 1 modelo base genera de 4 a 8
+    monstruos de distintos niveles cambiando tinte o material, escala,
+    accesorios y nombre. Ejemplos: Lobo Gris nv3, Lobo de la Bruma nv12,
+    Huargo Sangriento nv28.
+  - Comportamientos:
+    - Pasivo o agresivo (radio de aggro).
+    - Social: ayuda a los de su familia.
+    - Correa (leash) que lo devuelve a su zona.
+    - Campeones: variante élite con aura brillante y mejor botín.
+  - Botín:
+    - Normal: adena, materiales comunes y baja probabilidad de equipo de su
+      grado.
+    - Élite: mejor tabla.
+    - Jefe: equipo garantizado de su grado, materiales raros y una
+      probabilidad de joya única.
+  - Vertical slice (nv1-10):
+    - Lobos (Lobo Gris nv2-4, Lobo Sombrío nv6-8).
+    - Goblins (Gremlin Travieso nv1-3, Goblin Saqueador nv4-6, Goblin
+      Chamán nv5-7, lanzador de hechizos).
+    - Arañas (Araña de las Ruinas nv7-9, Araña Venenosa nv8-10).
+    - Jefe: Grakk nv10.
+    - El Esqueleto Soldado nv8-10 es P1.
+
+8.12 El Administrador (GM)
+  - Cuenta con rol 9 (GM).
+  - Comandos por chat con prefijo "//" y un PANEL GM táctil (botón en el
+    HUD) para usar en el teléfono. Lista completa en el Anexo E.
+  - Todos se validan en el servidor y quedan registrados en la tabla
+    gm_audit.
+
+
+################################################################################
+## 9. ARQUITECTURA TÉCNICA
+################################################################################
+
+9.1 Red
+  - Una sala Colyseus por zona. El teletransporte sale de una sala y entra a
+    otra, con pantalla de carga.
+  - Tick del servidor a 20 Hz. IA a 5 Hz en reposo y 20 Hz en combate.
+  - Gestión de interés: solo se envían las entidades a menos de 80 m.
+  - El cliente envía INTENCIONES:
+      moveTo(x,z) | moveDir(vec) | stop | target(id) | attack(id)
+      useSkill(id, target) | toggleSkill(id) | sit | pickup(dropId)
+      npcInteract(npcId) | shopBuy / shopSell | learnSkill
+      teleport(destId) | useItem | equip / unequip | chat | gm(cmd, args)
+  - Todos los mensajes se validan con zod.
+  - El cliente PREDICE su propio movimiento sobre la navmesh y reconcilia
+    con el servidor. Las demás entidades se interpolan con un búfer de
+    unos 100 ms.
+  - El combate se resuelve en el servidor: valida rango, línea de visión,
+    reuso, MP y estado. El servidor emite eventos (skillStart, skillHit,
+    damage, death, levelUp, drop) que el cliente usa para animaciones, VFX,
+    SFX y números flotantes.
+
+9.2 Navegación
+  - Cada zona exporta su colisión simplificada. tools\pipeline\navmesh.mjs
+    genera la navmesh con recast-navigation; servidor y cliente usan el
+    mismo archivo.
+  - Con navmesh no hace falta física de cuerpos rígidos: L2 no tenía salto
+    de plataformas. Puede haber un salto cosmético.
+
+9.3 Persistencia
+  - El estado del personaje vive en memoria del servidor. Se guarda en
+    transacción cada 60 s y también en eventos clave: subir de nivel,
+    compra o venta, equipar, cambiar de zona, desconexión y apagado (con
+    manejador SIGINT).
+  - Esquema inicial en el Anexo D.
+  - Conexión mssql: server localhost (o localhost\SQLEXPRESS), base IAJuego,
+    con options { encrypt: true, trustServerCertificate: true }.
+  - Si la instancia es con nombre y no conecta, usa el puerto TCP fijo y
+    documenta cómo se habilitó.
+
+9.4 Seguridad mínima
+  - Contraseñas con argon2id.
+  - Límite de intentos de login.
+  - JWT de sesión corta.
+  - Consultas siempre parametrizadas.
+  - CORS restringido.
+  - .env fuera de git.
+  - El puerto 1433 de SQL NUNCA se expone a internet.
+  - La app usa el login iajuego_app con permisos de lectura y escritura;
+    las migraciones se corren con sa.
+
+9.5 Despliegue local y teléfono (documéntalo en docs\JUGAR_EN_TELEFONO.md)
+  - "pnpm build" genera el cliente. El servidor sirve el build y los
+    websockets en un único puerto (2567): una sola URL.
+  - Desarrollo: Vite en 5173 con proxy al servidor.
+  - LAN: usa la IP local del PC y añade una regla en el Firewall de Windows
+    solo para ese puerto.
+  - Fuera de casa, con HTTPS (necesario para PWA y service worker):
+    - Opción privada recomendada: Tailscale en el PC y el teléfono, con
+      "tailscale serve" para tener HTTPS.
+    - Para compartir temporalmente: Cloudflare Quick Tunnel
+      (cloudflared tunnel --url http://localhost:2567).
+  - El servidor corre como proceso persistente con pm2 o como servicio de
+    Windows (NSSM). Hay script de arranque y de parada.
+
+9.6 Pantalla completa y móvil
+  - Botón de pantalla completa en login, HUD y ajustes. Usa la Fullscreen
+    API con navigationUI "hide" y screen.orientation.lock("landscape") en
+    Android.
+  - Manifest PWA con display "fullscreen" y orientation "landscape".
+  - En iPhone la Fullscreen API no existe para páginas. Muestra una guía
+    para "Añadir a pantalla de inicio" (modo standalone).
+  - Respeta las safe-area-insets. Botones táctiles de 44 px como mínimo.
+
+
+################################################################################
+## 10. FASES (UNA A LA VEZ, CON PUERTA DE CALIDAD)
+################################################################################
+
+Formato de cada fase: Objetivo · Tareas · Entregables · Definición de
+Terminado (DdT) · Puerta de calidad · NO hacer.
+Al cerrar cada fase entrega un REPORTE: resumen, rutas de capturas, notas de
+rúbrica, métricas de rendimiento, decisiones tomadas y plan de la siguiente
+fase. Haz commit con la etiqueta "fase-N-completa".
+
+--------------------------------------------------------------------------------
+FASE 0. ENTORNO Y VERIFICACIÓN
+--------------------------------------------------------------------------------
+Objetivo: tener todas las herramientas funcionando y verificadas.
+
+Tareas:
+  1. Comprueba winget e instala lo que falte en sus rutas por defecto. Si un
+     id de winget no existe, búscalo con "winget search" o usa el instalador
+     oficial.
+       winget install -e --id Git.Git
+       winget install -e --id GitHub.GitLFS
+       winget install -e --id OpenJS.NodeJS.LTS
+       winget install -e --id astral-sh.uv
+       winget install -e --id BlenderFoundation.Blender
+       winget install -e --id Gyan.FFmpeg
+       winget install -e --id Microsoft.Sqlcmd
+       KTX-Software (toktx): instalador desde los releases de GitHub de
+         KhronosGroup/KTX-Software
+       corepack enable ; corepack prepare pnpm@latest --activate
+       npm i -g @gltf-transform/cli
+     Después, en el proyecto: pnpm exec playwright install chromium.
+  2. Detecta la ruta de blender.exe y guárdala en .env (BLENDER_PATH).
+  3. Blender MCP:
+     - Descarga addon.py de github.com/ahujasid/blender-mcp, instálalo en
+       Blender (Preferencias > Complementos > Instalar desde disco) y
+       actívalo.
+     - En la barra lateral (N) de Blender, pestaña BlenderMCP, inicia el
+       servidor.
+     - Registra el MCP en tu configuración de agente. En Windows suele ser:
+         command = "cmd", args = ["/c", "uvx", "blender-mcp"]
+       Por ejemplo, en config.toml estilo Codex:
+         [mcp_servers.blender]
+         command = "cmd"
+         args = ["/c", "uvx", "blender-mcp"]
+     - Verifica pidiendo la información de la escena.
+     - Si no puedes completar la activación dentro de Blender, crea la tarea
+       con instrucciones paso a paso en TAREAS_HUMANO.md. MIENTRAS TANTO
+       sigue: el pipeline headless no depende del MCP.
+  4. SQL Server:
+     - Detecta la instancia y verifica:
+         sqlcmd -S <instancia> -U sa -P 123456 -C -Q "SELECT @@VERSION"
+     - Crea la base IAJuego y el login iajuego_app con contraseña aleatoria
+       fuerte. Usuario en IAJuego con db_datareader y db_datawriter (y
+       EXECUTE si se usan procedimientos).
+     - Guarda todo en .env. Si TCP/IP está deshabilitado, añade la tarea
+       humana con los pasos exactos de SQL Server Configuration Manager.
+  5. Prepara D:\IA_juego:
+     - git init, .gitignore (node_modules, dist, .env, caches) y
+       .gitattributes con LFS para *.blend, *.fbx, *.psd, *.wav y *.exr.
+     - Estructura de carpetas de la sección 6.
+     - Copia este prompt a docs\PROMPT_MAESTRO.txt y crea los demás docs.
+  6. Comprueba si TRIPO_API_KEY existe en .env. Si no, añade la tarea humana.
+
+Entregables: docs\qa\fase-0\entorno.txt con las versiones de node, pnpm,
+git, blender, ffmpeg, gltf-transform, toktx y sqlcmd, más la conexión a SQL
+OK y el estado del MCP.
+DdT: todas las herramientas responden; la app conecta a SQL con
+iajuego_app; los docs existen.
+NO hacer: no empieces a programar el juego aún. No instales nada dentro de
+D:\IA_juego salvo dependencias npm del proyecto.
+
+--------------------------------------------------------------------------------
+FASE 1. FUNDACIONES DE DISEÑO (sin código de juego)
+--------------------------------------------------------------------------------
+Objetivo: decidir antes de construir.
+
+Tareas:
+  1. docs\GDD.md: amplía la sección 8 y define el alcance exacto del
+     vertical slice (lista P0 cerrada).
+  2. docs\BIBLIA_ARTE.md:
+     - Análisis de las referencias.
+     - Estilo, paleta por reino y luz por zona.
+     - Reglas de materiales.
+     - Alturas y proporciones por raza.
+     - Estilo de UI: paneles oscuros translúcidos con bordes dorados o
+       bronce, tipografía serif para títulos (p. ej. Cinzel) y sans legible
+       para el texto.
+     - Estilo de iconos.
+  3. Conceptos con el CPC, paso 1:
+     - Hoja del Admin: pose T con 4 vistas más hoja de rostro. Armadura
+       blanca y dorada con capa, para lucir la física de tela.
+     - Lámina de Aurelion y lámina de la zona de caza (estilo "Planet
+       Overview": panorámica, 6 viñetas y paleta).
+     - Vista cenital de ambas.
+     - Hojas de las 3 familias de monstruos y del jefe Grakk.
+     - Mockup del HUD en móvil y en escritorio.
+  4. Desglose de assets (CPC, paso 2) de Aurelion y de la zona de caza, con
+     etiquetas T1..Tn sobre la imagen.
+  5. Datos en packages\data con esquemas zod:
+     - Las 7 razas.
+     - Árbol de clases completo (stubs).
+     - Rama Human Fighter detallada con las skills del 8.5.
+     - Monstruos e items de nivel 1-20.
+     - Tienda de víveres, teletransportes y xp_table.
+     - Comando pnpm data:validate.
+
+DdT: los docs existen; las imágenes están en assets_src\conceptos (o los
+prompts están listos para mí); data:validate pasa.
+Límite: una sesión de trabajo. No te enamores del documento.
+NO hacer: nada de código de render ni de red.
+
+--------------------------------------------------------------------------------
+FASE 2. ESQUELETO TÉCNICO JUGABLE (en línea desde el día 1)
+--------------------------------------------------------------------------------
+Objetivo: que la tubería completa funcione de punta a punta, con sustitutos
+DIGNOS.
+
+Tareas:
+  1. Monorepo (client, server, shared, data). Scripts: dev, build, test,
+     db:migrate, data:validate, assets:build, qa:shots, qa:perf.
+  2. Migraciones del Anexo D; registro y login; selección de personaje;
+     creación del Admin con rol GM (seed).
+  3. Escena de prueba:
+     - Terreno de 128 x 128 m con splat de 3 capas PBR de ambientCG o Poly
+       Haven, hierba instanciada y HDRI.
+     - Cumple R4 desde ya.
+  4. Personaje sustituto: humanoide CC0 YA riggeado y animado (por ejemplo,
+     Quaternius base character con Universal Animation Library). Nada de
+     cápsulas.
+  5. Locomoción con mezcla de clips, cámara cercana con colisión, joystick
+     en móvil, click-to-move y WASD en escritorio, navmesh.
+  6. Sala Colyseus. Dos pestañas se ven moverse con interpolación. La
+     posición se guarda en SQL y al reconectar apareces donde estabas.
+  7. Pantalla completa, orientación horizontal, presets de calidad y overlay
+     de depuración (FPS, draw calls, triángulos, memoria, ping).
+  8. Playwright: smoke test e2e (registro → login → entrar → moverse → ver a
+     otro jugador) en escritorio y en emulación móvil, con capturas.
+
+DdT:
+  - El e2e pasa.
+  - 60 FPS en escritorio.
+  - Accesible desde el teléfono en la LAN con la URL documentada (no me
+    pidas probar todavía; solo déjalo listo).
+Límite: no pulas el arte aquí. Que sea sólido, no bonito.
+NO hacer: UI final, combate, assets finales.
+
+--------------------------------------------------------------------------------
+FASE 3. PIPELINE DE ASSETS AUTOMATIZADO
+--------------------------------------------------------------------------------
+Objetivo: un comando que convierta material crudo en assets listos para el
+juego.
+
+Tareas:
+  1. tools\tripo\tripo_client.mjs:
+     - Crear tarea, sondear el estado, descargar.
+     - Caché por hash de la entrada.
+     - Registro de créditos.
+     - Límite de generaciones por asset: 3 para personajes, 2 para props.
+  2. Scripts de Blender en tools\blender: import_clean.py, make_lods.py,
+     rig_check.py, pose_test_render.py, bake_anims.py,
+     add_spring_bones.py, render_turntable.py, render_icon.py y
+     export_glb.py.
+  3. Scripts de tools\pipeline: optimize.mjs, audio.mjs, icons.mjs,
+     manifest.mjs, minimap.mjs (render ortográfico cenital de la zona) y
+     navmesh.mjs.
+  4. Visor de assets en /viewer: órbita, alternar LOD, alambre, lista de
+     animaciones, estadísticas, comparación lado a lado con la imagen de
+     referencia y modo turntable para capturas.
+  5. Prueba de punta a punta con 1 roca "modelo madre" y 1 prop protagonista
+     (la fuente de Aurelion): Tripo → Blender → optimize → manifest →
+     en el juego.
+
+DdT: "pnpm assets:build" es idempotente; gltf-validator da cero errores; los
+dos assets se ven en el juego con LODs y KTX2.
+NO hacer: no generes todavía docenas de assets.
+
+--------------------------------------------------------------------------------
+FASE 4. PERSONAJE PROTAGONISTA: EL ADMINISTRADOR
+--------------------------------------------------------------------------------
+Objetivo: un personaje que se vea profesional de cerca, en el teléfono.
+
+Tareas:
+  1. CPC completo con las secciones 7.2 y 7.3: Tripo Smart Mesh P2.0 (quad)
+     → limpieza → PROTOCOLO DE ROSTRO → rig → validación de poses.
+  2. Animaciones del Anexo A sobre el esqueleto del Admin. Locomoción sin
+     foot sliding.
+  3. Spring bones en capa y cabello, con colisión contra el cuerpo.
+  4. Espada larga y escudo (Tripo HD) en sus sockets. Vaina en la espalda
+     (P1).
+  5. Iluminación de personaje: rim, relleno, piel y tela.
+  6. Sustituye al personaje sustituto en el juego. Pantalla de selección con
+     el Admin girando sobre un pedestal.
+
+QA:
+  - Turntable, rostro en 3 ángulos (en Blender y en el motor), hoja de
+    contactos de cada animación y vídeo corto con Playwright (correr,
+    girar, atacar, sentarse).
+  - Rúbrica de personaje (Anexo G) ≥ 8 en TODOS los criterios, en
+    especial ROSTRO.
+DdT: se ve bien a la distancia de cámara por defecto en emulación móvil; la
+capa se mueve; 30+ FPS en el preset Medio.
+NO hacer: más razas ni personalización todavía.
+
+--------------------------------------------------------------------------------
+FASE 5. MUNDO DEL VERTICAL SLICE: AURELION + PRADERAS DE AURELION (nv1-10)
+--------------------------------------------------------------------------------
+Objetivo: un mundo denso, atmosférico y creíble. Lo contrario de "pelón".
+
+Tareas:
+  1. Ciudad de Aurelion (zona segura):
+     - Muralla y puerta monumental.
+     - Plaza central con fuente.
+     - Calles empedradas y mercado con puestos.
+     - Edificios de tiendas: víveres, armas, armaduras, magia, almacén,
+       templo y portales.
+     - Estandartes, faroles, macetas, barriles y cajas.
+     - Ambiente sonoro de ciudad.
+  2. Praderas de Aurelion:
+     - Camino desde la puerta, bosque de abedules y robles, lago, arroyo.
+     - Granjas abandonadas.
+     - Ruinas del Colmillo con arena para el jefe Grakk.
+     - Sub-zonas por nivel: 1-3, 4-6, 7-10.
+  3. Terreno, splat, vegetación, dispersión, decals, agua, cielo, niebla,
+     LUT y partículas, según 7.5.
+  4. Colisión, navmesh, render de minimapa y puntos de spawn en
+     zones\aurelion*.json.
+  5. Entre 10 y 12 marcadores de cámara para QA: puerta de la ciudad,
+     plaza, mercado, interior de tienda (si hay), vista general de la
+     pradera, sendero del bosque, lago, granjas, ruinas, arena del jefe y
+     primer plano del Admin en la pradera.
+
+Puerta de calidad:
+  - Rúbrica de entorno ≥ 8 en todos los marcadores comparados con los
+    conceptos.
+  - Cero props flotantes.
+  - Tiling no evidente.
+  - Ninguna zona de más de 15 m² sin detalle a la vista del jugador.
+  - Presupuestos de la sección 4.3 cumplidos en el preset Medio emulado.
+NO hacer: abrir otras regiones.
+
+--------------------------------------------------------------------------------
+FASE 6. COMBATE Y PROGRESIÓN (servidor autoritativo)
+--------------------------------------------------------------------------------
+Objetivo: el bucle "cazar → subir de nivel → mejorar" ya se siente bien.
+
+Tareas:
+  1. Monstruos de 8.11 con el CPC.
+     - Rig: Tripo, con el tipo de esqueleto adecuado (bípedo o cuadrúpedo,
+       según la documentación vigente).
+     - Animaciones: para los goblins, Mixamo; para lobos y arañas, presets
+       de retarget de Tripo o clips CC0.
+     - Clips mínimos: idle, caminar, correr, 2 ataques, golpe recibido y
+       muerte.
+  2. IA en el servidor: deambular, aggro, persecución, ataque, correa y
+     regreso; ayuda social; reaparición con temporizador.
+  3. Selección de objetivo:
+     - Tocar o clic sobre el enemigo.
+     - Botón "siguiente objetivo".
+     - Anillo de selección.
+     - Ventana de objetivo con color de nivel.
+  4. Combate:
+     - Ataque automático.
+     - Skills del 8.5 con barra de lanzamiento, reuso, MP, críticos y
+       fallos.
+     - Soulshots.
+     - Números flotantes.
+  5. Regeneración, sentarse/levantarse, pociones con enfriamiento, buffs
+     con duración.
+  6. XP, SP y subida de nivel (estadísticas, curación completa, columna de
+     luz con VFX y SFX).
+  7. Drops con haz de rareza, recoger (auto-loot opcional) y adena.
+  8. Muerte y reaparición. La inmunidad GM funciona y puede desactivarse
+     para probar.
+  9. Jefe Grakk con las mecánicas de 8.10 y aviso en el suelo antes de cada
+     golpe.
+
+DdT:
+  - Pruebas unitarias de fórmulas, XP y drops.
+  - e2e: matar monstruo → XP → botín → subir de nivel.
+  - Grakk se puede vencer con el Admin sin inmunidad, usando pociones, en
+    2 a 4 minutos.
+NO hacer: party, clanes ni PvP.
+
+--------------------------------------------------------------------------------
+FASE 7. UI / HUD ESTILO L2, CONTROLES MÓVILES, MINIMAPA Y NPCs
+--------------------------------------------------------------------------------
+Tareas:
+  1. HUD en el teléfono (horizontal):
+     - Arriba a la izquierda: retrato, nombre, nivel, barras de CP
+       (amarillo), HP (rojo) y MP (azul), y barra de XP fina.
+     - Debajo: buffs con temporizador.
+     - Arriba al centro: ventana del objetivo.
+     - ARRIBA A LA DERECHA: MINIMAPA.
+     - Abajo a la izquierda: joystick y, encima, el chat plegable.
+     - Abajo a la derecha: botón de ataque grande, 6 a 8 skills en arco con
+       páginas, siguiente objetivo y 2 ranuras de poción.
+     - Botones de menú, sentarse y pantalla completa.
+     - Barra de lanzamiento abajo al centro.
+  2. Escritorio: barra de atajos F1-F12 (2 filas), atajos de ventanas
+     (I inventario, K skills, C personaje, M mapa, Esc menú) y chat abajo a
+     la izquierda.
+  3. MINIMAPA:
+     - Textura pre-renderizada de la zona y canvas 2D de 180 px (140 en
+       móvil) con borde dorado.
+     - Puntos: ROJO para monstruos (rojo intenso si es agresivo, rojo opaco
+       si es pasivo), calavera morada para el jefe, amarillo para NPCs,
+       verde para jugadores, azul para el grupo y flecha blanca para ti.
+     - Nombre de la zona, coordenadas y zoom +/-.
+     - Al tocarlo se abre el mapa completo; el GM puede teletransportarse
+       tocando el mapa.
+  4. Ventanas:
+     - Inventario con muñeco de equipo (paperdoll) y cuadrícula.
+     - Estado del personaje.
+     - SKILLS: pestañas de Activas, Pasivas y Toggles, con ilustraciones,
+       tooltips y niveles; se arrastran a la barra.
+     - Mapa.
+     - Ajustes: gráficos, audio, controles y pantalla completa.
+     - Créditos.
+  5. NPCs funcionales en Aurelion:
+     - Tienda de Víveres: comprar y vender, con cantidad, precio y adena.
+     - Maestro de Clase: lista de skills aprendibles con coste de SP y
+       adena.
+     - Guardián de Portales: destinos con coste; los reinos aún no hechos
+       aparecen bloqueados en gris.
+     - Comerciante de armas y armaduras: P1.
+  6. Iconos e ilustraciones (7.8) para todas las skills e items del
+     vertical slice.
+  7. Panel GM táctil (Anexo E).
+  8. Pantallas de login (escena 3D de Aurelion a la hora dorada con cámara
+     lenta y tema musical), de selección y de carga (progreso real, arte y
+     consejos).
+
+DdT: todos los flujos se completan SOLO con el tacto en emulación móvil;
+textos legibles; capturas de QA de cada ventana.
+
+--------------------------------------------------------------------------------
+FASE 8. AUDIO ÉPICO Y "GAME FEEL"
+--------------------------------------------------------------------------------
+Tareas:
+  1. Todo lo de la sección 7.7 para el vertical slice. Ninguna acción sin
+     sonido.
+  2. Sensación de golpe:
+     - Hit-stop de 40-70 ms en críticos.
+     - Sacudida de cámara leve.
+     - Destello emisivo al recibir golpe y retroceso leve.
+     - Estelas de arma.
+     - Chispas o sangre estilizada en el impacto.
+     - Polvo al pisar.
+  3. VFX con three.quarks: un efecto propio por skill, columna de luz al
+     subir de nivel, haces de botín, círculo de aviso del jefe, disolución
+     al morir y teletransporte.
+
+DdT: checklist de audio completa (cada evento → sonido); loudness
+consistente; rúbrica de audio ≥ 8 (en especial "épico" e "inmersivo").
+
+--------------------------------------------------------------------------------
+FASE 9. OPTIMIZACIÓN MÓVIL, PWA Y PUBLICACIÓN EN LÍNEA
+--------------------------------------------------------------------------------
+Tareas:
+  1. Perfilado:
+     - Chrome DevTools con throttling de CPU x4 y Spector.js.
+     - Ajuste de LODs, instancing, atlas y variantes de textura por preset.
+     - Resolución dinámica.
+  2. Streaming por zona con pantalla de carga. Service worker con
+     versionado. Instalación PWA con iconos y splash.
+  3. Reconexión automática. Servidor como servicio (pm2 o NSSM). Scripts
+     iniciar-servidor.ps1 y detener-servidor.ps1.
+  4. docs\JUGAR_EN_TELEFONO.md paso a paso (LAN, Tailscale y Cloudflare
+     Tunnel).
+  5. Pruebas:
+     - Prueba de resistencia de 1 h con 2 clientes; el heap no crece más de
+       10%.
+     - Carga inicial de menos de 20 s con red "Fast 4G" emulada y menos de
+       5 s con caché.
+
+DdT: 30+ FPS estables en el preset Medio emulado; métricas en
+docs\qa\fase-9\perf.md.
+
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>  HITO 1: VERTICAL SLICE  <<<<<<<<<<<<<<<<<<<<<<<<<
+Avísame con:
+  - URL para el teléfono.
+  - Usuario y contraseña del Admin (también en .env).
+  - Lista de cosas que probar (10-15 puntos).
+  - Problemas conocidos.
+  - Capturas destacadas.
+Puedes empezar la Fase 10 mientras pruebo, pero cuando llegue mi feedback
+tiene prioridad.
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+--------------------------------------------------------------------------------
+FASE 10. RAZAS, CLASES Y CREACIÓN DE PERSONAJE
+--------------------------------------------------------------------------------
+  - Pantalla de creación: raza, género, base Luchador o Místico, 3 rostros,
+    3 peinados y 3 colores de pelo.
+  - Orden de producción (una raza por iteración, CPC completo y puerta de
+    rostro para cada una): Elfo Oscuro F, Elfo F, Orco M, Enano M, Humano F,
+    Kamael M, Ertheia F; después el resto de combinaciones.
+  - Atuendos iniciales: Luchador y Místico (túnica con física).
+  - Skills de nivel 1-40 de cada rama base.
+  - Cambio de 1ª y 2ª profesión con el Maestro de Clase.
+
+--------------------------------------------------------------------------------
+FASE 11. REINOS 2-6, TORRES Y RED DE TELETRANSPORTE
+--------------------------------------------------------------------------------
+  - Un reino por sub-fase, en el orden de 8.10. Cada uno con CPC completo:
+    ciudad con NPCs y Guardián, zonas de caza, familias de monstruos con
+    variantes por nivel, jefes cada 10 niveles, música, ambiente, LUT y
+    niebla propios.
+  - Teletransporte entre las 6 ciudades activado al completar cada reino.
+  - Torre de Cristal (Nordhrim) y Torre del Eclipse (10 pisos) con élites
+    por piso y jefes.
+  - Botín por grado y materiales por banda de nivel en todo el rango 1-150.
+
+--------------------------------------------------------------------------------
+FASE 12. SISTEMAS AVANZADOS (en orden de valor)
+--------------------------------------------------------------------------------
+  Grupo (party) con XP compartida → misiones principales por reino →
+  almacén → crafteo (enano), cristalización y encantamiento → ciclo
+  día/noche y clima → comercio entre jugadores y tienda privada sentado
+  (icónica de L2) → clanes → monturas (strider/wyvern) → PvP con karma.
+
+
+################################################################################
+## 11. CONTROL DE CALIDAD
+################################################################################
+
+  - "pnpm qa:shots --fase N":
+    - Abre el cliente con ?qa=1&bookmark=<nombre>&preset=<p>, con hora fija,
+      semilla fija y la UI oculta u opcional.
+    - Captura en 1920x1080 y 915x412 (teléfono horizontal).
+    - Guarda en docs\qa\fase-N\AAAAMMDD\.
+  - AGENTE REVISOR INDEPENDIENTE: si puedes lanzar sub-agentes, lanza uno
+    que NO conozca la implementación. Recibe las referencias, las capturas y
+    la rúbrica del Anexo G, y devuelve notas y una lista concreta de
+    diferencias. Si no puedes lanzar sub-agentes, haz tú la revisión "a
+    ciegas" siguiendo la rúbrica punto por punto y anota la evidencia.
+  - "pnpm qa:perf": FPS promedio y 1% bajo, draw calls, triángulos y
+    memoria, en escritorio y en móvil emulado (CPU x4). Guarda un histórico.
+  - Pruebas automáticas:
+    - Vitest para fórmulas, XP, drops, economía y validación de datos.
+    - Integración del servidor simulando la sala con clientes falsos.
+    - Playwright e2e de los flujos principales.
+  - Antes de cada commit grande: pnpm typecheck, lint, test y
+    data:validate.
+
+
+################################################################################
+## 12. PROTOCOLO DE TRABAJO
+################################################################################
+
+  - AL INICIAR CADA SESIÓN, lee docs\PROMPT_MAESTRO.txt, PROGRESO.md,
+    DECISIONES.md y TAREAS_HUMANO.md.
+  - Antes de cada fase, escribe en PROGRESO.md un plan corto (de 15 líneas
+    como máximo) con la estimación. Si la fase se alarga más del doble de lo
+    estimado, recorta el alcance a P0 y anótalo.
+  - Commits pequeños con prefijo de fase, por ejemplo:
+    "[F5] terreno: splat de 6 capas + macro-variación".
+  - Pedidos al humano: por LOTE, en TAREAS_HUMANO.md, con pasos exactos,
+    rutas y capturas de dónde hacer clic. Nunca te quedes inactivo
+    esperando: continúa con otra tarea.
+  - Control de costes: registra los créditos de Tripo por asset. Biblioteca
+    gratuita antes que generar. Respeta el límite de generaciones.
+  - Si una decisión técnica cambia el stack, la escribes en DECISIONES.md
+    con: contexto, opciones, decisión y consecuencia.
+  - Formato de tus mensajes de progreso: qué hiciste, evidencia (capturas,
+    tests), qué sigue y qué necesitas de mí (si es algo).
+
+
+################################################################################
+## 13. TAREAS QUE ME TOCAN A MÍ (pon la lista en TAREAS_HUMANO.md)
+################################################################################
+
+  H1. Tripo: crear cuenta y API key (platform.tripo3d.ai) y ponerla en
+      D:\IA_juego\.env como TRIPO_API_KEY. Si no hay API, generaré a mano en
+      studio.tripo3d.ai con tus prompts y la configuración del Anexo C, y
+      dejaré los .glb en assets_src\incoming\.
+  H2. Mixamo (una sola vez): descargar el paquete del Anexo A y dejarlo en
+      assets_src\mixamo\. Si el rig es por Mixamo, subir cada personaje al
+      auto-rigger (2 minutos cada uno).
+  H3. Poner mis capturas de referencia en docs\referencias\.
+  H4. Si no tienes generación de imágenes: generar las imágenes con los
+      prompts de docs\prompts_imagenes.md y dejarlas en
+      assets_src\conceptos\.
+  H5. Si hace falta: habilitar TCP/IP en SQL Server Configuration Manager,
+      activar el add-on de Blender MCP y aceptar los avisos del firewall.
+  H6. (Opcional) Comprar Auto-Rig Pro. Si no, se usa el rig de Tripo,
+      Mixamo o AccuRIG.
+  H7. (Opcional) Aprobar el concepto del Admin y de Aurelion. Si no
+      respondo, continúa con tu mejor criterio y guarda las imágenes para
+      que las vea después.
+  H8. En el Hito 1: probar en mi teléfono y darte feedback.
+
+
+################################################################################
+## 14. PRIMERA ACCIÓN
+################################################################################
+
+  1. Crea D:\IA_juego\docs\ y guarda este prompt completo como
+     PROMPT_MAESTRO.txt.
+  2. Escribe en PROGRESO.md el plan de la FASE 0 (15 líneas como máximo).
+  3. Ejecuta la FASE 0. Al terminar, entrega el reporte de fase y continúa
+     con la FASE 1 sin esperar, salvo que haya tareas humanas bloqueantes
+     (en ese caso, pídelas por lote y avanza en lo que no dependa de ellas).
+
+
+================================================================================
+ANEXO A. PAQUETE DE ANIMACIONES MIXAMO (descarga única, humanoides)
+================================================================================
+Configuración de descarga:
+  - FBX Binary, 30 fps, sin reducción de keyframes.
+  - "Without Skin" para todas, salvo una "With Skin" de referencia.
+  - Marca "In Place" en la locomoción.
+Los nombres son aproximados: busca el más parecido.
+
+LOCOMOCIÓN
+  Breathing Idle · Happy Idle (variación) · Walking · Standard Run ·
+  Running (alternativa) · Jump (cosmético) · Left Turn / Right Turn
+  (opcional) · Stand To Sit · Sitting Idle · Sit To Stand
+COMBATE ESPADA Y ESCUDO
+  Sword And Shield Idle · Sword And Shield Walk · Sword And Shield Run ·
+  Sword And Shield Slash (2-3 variantes) · Sword And Shield Attack ·
+  Sword And Shield Kick · Sword And Shield Block ·
+  Sword And Shield Impact · Sword And Shield Death ·
+  Sword And Shield Power Up (buff) · Sword And Shield Casting
+DOS MANOS Y ESPECIALES
+  Great Sword Idle · Great Sword Slash · Great Sword High Spin Attack ·
+  Standing Melee Attack 360 High (Torbellino) ·
+  Standing Melee Attack Downward · Standing Taunt Battlecry (Rugido) ·
+  Stunned / Dizzy Idle
+MAGIA (para místicos, después)
+  Standing 1H Magic Attack 01 · Standing 2H Magic Area Attack 01 ·
+  Two Hand Spell Casting · Standing 1H Cast Spell 01 · Magic Heal
+REACCIONES Y OTROS
+  Hit Reaction · Dying · Death From The Front · Picking Up (botín) ·
+  Victory Idle · Cheering (subir de nivel) · Waving · Quick Formal Bow
+NPCs
+  Standing Idle · Talking (2 variantes) · Looking Around · Leaning ·
+  Arms Crossed (guardia) · Hammering (herrero)
+ARQUERÍA (después)
+  Standing Draw Arrow · Standing Aim Overdraw · Standing Aim Recoil
+
+
+================================================================================
+ANEXO B. PLANTILLAS DE PROMPTS DE IMAGEN
+================================================================================
+B1. HOJA DE PERSONAJE (pose T, 4 vistas)
+"Hoja de referencia de personaje para modelado 3D de videojuego. [RAZA]
+[GÉNERO] [CLASE], [VESTIMENTA DETALLADA: materiales, colores, ornamentos].
+Estilo fantasía medieval épica semi-realista estilizada, calidad AAA
+inspirada en Lineage II y juegos MMORPG modernos. Rostro atractivo con rasgos
+definidos, ojos simétricos y nítidos, expresión neutra. Pose T: brazos
+horizontales, palmas hacia abajo, dedos separados, piernas ligeramente
+separadas, mirada al frente. Cuatro vistas alineadas a la misma escala y
+altura: frente, espalda, lateral izquierdo, lateral derecho. Proyección
+ortográfica sin perspectiva. Fondo gris liso uniforme. Iluminación de
+estudio plana y suave, sin sombras proyectadas. Cuerpo completo de cabeza a
+pies. Sin armas en las manos. Sin texto ni marcas."
+
+B2. HOJA DE ROSTRO
+"Retrato de referencia de la cabeza del mismo personaje para modelado 3D:
+vista frontal, tres cuartos y perfil, alineadas a la misma escala.
+Expresión neutra, ojos abiertos mirando al frente, boca cerrada. Peinado
+[ESTILO] color [COLOR]. Piel con detalle natural. Iluminación de estudio
+suave y uniforme. Fondo gris liso. Alta resolución, rasgos nítidos."
+
+B3. CRIATURA
+"Hoja de referencia de criatura para modelado 3D: [CRIATURA], [RASGOS,
+MATERIALES, COLORES], nivel [N], estilo fantasía MMORPG semi-realista
+inspirado en Lineage II. Pose neutra (pose A si es bípedo; de pie sobre
+sus patas si es cuadrúpedo). Vistas: frente, lateral, espalda y tres
+cuartos. Fondo gris liso. Iluminación plana. Silueta clara. Sin
+partículas, sin efectos, sin texto."
+
+B4. LÁMINA DE ZONA ("Planet Overview")
+"Lámina de diseño de entorno '[NOMBRE DE LA ZONA]' para videojuego 3D:
+arriba, una vista panorámica isométrica de toda la zona; abajo, 6 viñetas
+de detalle de lugares clave ([LISTA]); paleta de 5 colores; notas breves.
+Estilo fantasía épica cinematográfica, [HORA DEL DÍA], niebla atmosférica,
+alta densidad de detalle en suelo y vegetación, composición clara."
+
+B5. PROP AISLADO
+"Objeto aislado para modelado 3D: [OBJETO, MATERIALES, DESGASTE], estilo
+fantasía medieval semi-realista. Vista tres cuartos frontal. Objeto completo
+y centrado. Fondo gris liso. Iluminación difusa sin sombras duras."
+
+B6. ICONO / ILUSTRACIÓN DE SKILL
+"Ilustración de habilidad para MMORPG de fantasía: [NOMBRE] — [QUÉ HACE].
+Pintura digital, símbolo central claro y legible incluso en tamaño pequeño,
+alto contraste, fondo con viñeta en tonos [COLOR DEL ELEMENTO], energía
+mágica coherente con el elemento [ELEMENTO]. Formato cuadrado. Sin texto,
+sin marco (el marco se añade después)."
+
+B7. DESGLOSE DE ASSETS (para pasarle al modelo junto con la lámina)
+"Voy a desarrollar el juego con Tripo + Blender + three.js. Analiza a fondo
+esta lámina y clasifica cada elemento visible en: (a) generar en Tripo
+(único, orgánico, protagonista o 'modelo madre' reutilizable), (b) usar de
+biblioteca CC0, (c) construir por script en Blender (modular simple),
+(d) procedural en el motor (terreno, hierba, agua, dispersión). Marca sobre
+la imagen los elementos de Tripo con etiquetas T1..Tn y entrega una tabla
+con: asset, categoría, presupuesto de triángulos, número de reutilizaciones
+y prioridad P0/P1/P2."
+
+B8. RÉPLICA FIEL DE ESCENA (para el ensamblado)
+"Con base en las láminas multivista de la zona y los assets 3D generados,
+replica la escena con fidelidad máxima: misma composición, escala,
+densidad de detalle, iluminación y atmósfera que la referencia. Al
+terminar, lanza un revisor independiente que inspeccione la escena desde
+varias cámaras 'a ciegas'. Si encuentra diferencias con la referencia,
+itera y corrige (máximo 3 rondas, regla R8)."
+
+
+================================================================================
+ANEXO C. CONFIGURACIÓN DE TRIPO (probada por otros creadores)
+================================================================================
+PROPS Y ESCENARIO
+  Modo HD Model · AI Model: H3.1 – Best Quality · Ultra Mesh Quality ON
+  (protagonistas) · Texture ON · Texture Quality 2K (4K protagonistas) ·
+  Remove Lighting ON · PBR ON · Topology Triangle · Polycount ~40.000
+  (luego se reduce y se generan LODs).
+PERSONAJES Y CRIATURAS
+  Modo Smart Mesh · entrada multivista (sube frente + 3 vistas) ·
+  AI Model: P2.0 · Topology QUAD (obligatorio para personajes) ·
+  Polycount 25.000 · Number of Generation: 2 · revisar la malla blanca →
+  "Edit Mesh" para regenerar localmente (máx. 3) → "Texture".
+API
+  Usa los tipos de tarea equivalentes (imagen o multivista a modelo,
+  texturizado, comprobación previa de rig, rig, retarget de animación,
+  conversión de formato) según la documentación vigente de
+  platform.tripo3d.ai. Registra el modelo y la versión usados en cada asset.
+RESPALDO
+  Meshy, Hunyuan3D o Hyper3D Rodin (este último disponible vía Blender MCP).
+
+
+================================================================================
+ANEXO D. ESQUEMA SQL INICIAL (db\migrations\001_init.sql)
+================================================================================
+CREATE TABLE dbo.schema_migrations (
+  version     VARCHAR(64) PRIMARY KEY,
+  applied_at  DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+);
+CREATE TABLE dbo.accounts (
+  id             INT IDENTITY(1,1) PRIMARY KEY,
+  username       NVARCHAR(32)  NOT NULL UNIQUE,
+  password_hash  NVARCHAR(255) NOT NULL,
+  role           TINYINT       NOT NULL DEFAULT 0,      -- 0 jugador, 9 GM
+  banned         BIT           NOT NULL DEFAULT 0,
+  created_at     DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+  last_login_at  DATETIME2     NULL
+);
+CREATE TABLE dbo.characters (
+  id            INT IDENTITY(1,1) PRIMARY KEY,
+  account_id    INT NOT NULL REFERENCES dbo.accounts(id),
+  name          NVARCHAR(24) NOT NULL UNIQUE,
+  race          VARCHAR(16)  NOT NULL,
+  gender        CHAR(1)      NOT NULL,
+  base_class    VARCHAR(32)  NOT NULL,
+  class_id      VARCHAR(32)  NOT NULL,
+  level         SMALLINT     NOT NULL DEFAULT 1,
+  exp           BIGINT       NOT NULL DEFAULT 0,
+  sp            BIGINT       NOT NULL DEFAULT 0,
+  hp INT NOT NULL, mp INT NOT NULL, cp INT NOT NULL,
+  adena         BIGINT       NOT NULL DEFAULT 0,
+  zone_id       VARCHAR(32)  NOT NULL,
+  pos_x FLOAT NOT NULL, pos_y FLOAT NOT NULL, pos_z FLOAT NOT NULL,
+  heading       FLOAT        NOT NULL DEFAULT 0,
+  appearance    NVARCHAR(MAX) NULL,                     -- JSON
+  gm_god        BIT          NOT NULL DEFAULT 0,
+  deleted       BIT          NOT NULL DEFAULT 0,
+  created_at    DATETIME2    NOT NULL DEFAULT SYSUTCDATETIME(),
+  last_save_at  DATETIME2    NULL
+);
+CREATE TABLE dbo.character_skills (
+  character_id  INT NOT NULL REFERENCES dbo.characters(id),
+  skill_id      VARCHAR(48) NOT NULL,
+  skill_level   SMALLINT    NOT NULL,
+  PRIMARY KEY (character_id, skill_id)
+);
+CREATE TABLE dbo.items (
+  id            BIGINT IDENTITY(1,1) PRIMARY KEY,
+  owner_id      INT NOT NULL REFERENCES dbo.characters(id),
+  item_def_id   VARCHAR(48) NOT NULL,
+  count         BIGINT      NOT NULL DEFAULT 1,
+  enchant       SMALLINT    NOT NULL DEFAULT 0,
+  location      VARCHAR(12) NOT NULL,     -- INVENTORY | PAPERDOLL | WAREHOUSE
+  slot          VARCHAR(16) NULL,         -- HEAD CHEST LEGS GLOVES FEET RHAND
+                                          -- LHAND NECK EAR1 EAR2 FINGER1 FINGER2
+  created_at    DATETIME2   NOT NULL DEFAULT SYSUTCDATETIME()
+);
+CREATE INDEX IX_items_owner ON dbo.items(owner_id, location);
+CREATE TABLE dbo.shortcuts (
+  character_id  INT NOT NULL REFERENCES dbo.characters(id),
+  page TINYINT NOT NULL, slot TINYINT NOT NULL,
+  type          VARCHAR(8)  NOT NULL,     -- SKILL | ITEM | ACTION
+  ref_id        VARCHAR(48) NOT NULL,
+  PRIMARY KEY (character_id, page, slot)
+);
+CREATE TABLE dbo.character_buffs (
+  character_id  INT NOT NULL REFERENCES dbo.characters(id),
+  skill_id      VARCHAR(48) NOT NULL,
+  skill_level   SMALLINT    NOT NULL,
+  remaining_ms  INT         NOT NULL,
+  PRIMARY KEY (character_id, skill_id)
+);
+CREATE TABLE dbo.boss_status (
+  boss_id       VARCHAR(48) PRIMARY KEY,
+  state         VARCHAR(8)  NOT NULL,     -- ALIVE | DEAD
+  respawn_at    DATETIME2   NULL
+);
+CREATE TABLE dbo.gm_audit (
+  id            BIGINT IDENTITY(1,1) PRIMARY KEY,
+  account_id    INT NOT NULL,
+  character_id  INT NULL,
+  command       NVARCHAR(64)  NOT NULL,
+  args          NVARCHAR(400) NULL,
+  at            DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME()
+);
+-- Seed: cuenta "admin" (role 9) con contraseña aleatoria en .env
+--       (ADMIN_PASSWORD) + personaje "Admin" (Humano, Human Fighter,
+--       gm_god = 1) en la plaza de Aurelion.
+
+
+================================================================================
+ANEXO E. COMANDOS GM (chat con "//" y botones en el panel GM táctil)
+================================================================================
+  //god on|off            inmunidad al daño
+  //invis on|off          invisible para los monstruos (sin aggro)
+  //speed <x>             multiplicador de velocidad (1-5)
+  //tp <zona> [x z]       teletransporte (o tocar el mapa)
+  //tpto <jugador>        ir hacia un jugador
+  //spawn <monsterId> [n] invocar monstruos
+  //boss <bossId>         forzar la aparición de un jefe
+  //kill                  matar al objetivo
+  //heal                  curar HP, MP y CP
+  //res                   resucitar
+  //level <n>             fijar el nivel (recalcula estadísticas)
+  //sp <n> · //adena <n> · //give <itemId> [n] [+enchant]
+  //learnall              aprender todas las skills de la clase (o todas)
+  //class <classId>       cambiar de clase
+  //time <hh:mm> · //weather <tipo>   (cuando existan)
+  //debug on|off          overlay: FPS, draw calls, triángulos, memoria,
+                          ping, posición
+  //freecam               cámara libre para capturas
+  //reload data           recargar en caliente los JSON de datos
+
+
+================================================================================
+ANEXO F. CHECKLIST DE ROSTRO (debe pasar 100%)
+================================================================================
+  [ ] Ojos simétricos, con iris y pupila definidos y brillo (catchlight). No
+      se ven "muertos" ni borrosos.
+  [ ] Párpados y pestañas legibles. El parpadeo funciona.
+  [ ] Nariz con volumen correcto de frente y de perfil.
+  [ ] Labios definidos, comisuras limpias, sin textura corrida.
+  [ ] Orejas con forma correcta y sin artefactos.
+  [ ] Línea del cabello limpia. El cabello no atraviesa la cara.
+  [ ] Sin costuras de UV visibles ni manchas en la cara.
+  [ ] La piel no parece plástico: rugosidad variable y algo de color
+      subsuperficial.
+  [ ] Unión cabeza-cuello limpia. Sin deformación al girar la cabeza o al
+      animar.
+  [ ] Se parece a la hoja de rostro (frente, 3/4 y perfil).
+  [ ] Se lee bien a 4,5 m (cámara por defecto) en 915x412.
+
+
+================================================================================
+ANEXO G. RÚBRICAS (1-10; aprobar = ≥ 8 en cada criterio)
+================================================================================
+ENTORNO: composición y silueta · detalle del suelo · riqueza de props y
+  vegetación · iluminación y atmósfera · coherencia de estilo · materiales
+  PBR · escala y proporción · cero errores (props flotantes, z-fighting,
+  tiling evidente, texturas estiradas, huecos) · fidelidad al concepto ·
+  rendimiento.
+PERSONAJE: rostro (Anexo F) · cabello · proporciones · detalle de ropa y
+  armadura · deformación en poses · naturalidad de la animación (sin foot
+  sliding, transiciones suaves) · física secundaria de tela y pelo ·
+  legibilidad a distancia de cámara · coherencia con la hoja de referencia.
+AUDIO: épico (música orquestal y coral adecuada) · inmersión ambiental ·
+  peso de los impactos · variedad (sin repetición molesta) · mezcla y
+  loudness · espacialización · sincronía con la animación.
+UI: legibilidad en teléfono · tamaño táctil · estilo coherente con L2 ·
+  claridad del minimapa (puntos rojos visibles) · flujo sin fricción ·
+  feedback visual y sonoro.
+
+
+================================================================================
+ANEXO H. EJEMPLOS DE DATOS (packages\data)
+================================================================================
+skills.json (una entrada):
+{
+  "id": "power_strike",
+  "name": "Golpe Poderoso",
+  "type": "active",
+  "element": "none",
+  "target": "enemy",
+  "range": 2.5,
+  "castMs": 400,
+  "reuseMs": 6000,
+  "mpCost": [10, 11, 12],
+  "levels": [
+    { "lv": 1, "reqLevel": 1,  "sp": 0,    "adena": 0,    "power": 25 },
+    { "lv": 2, "reqLevel": 5,  "sp": 350,  "adena": 500,  "power": 38 },
+    { "lv": 3, "reqLevel": 10, "sp": 1200, "adena": 1500, "power": 55 }
+  ],
+  "effects": [{ "kind": "physicalDamage", "power": "$level.power" }],
+  "anim": "sword_slash_heavy",
+  "vfx": "vfx_power_strike",
+  "sfx": ["sfx_swing_heavy", "sfx_impact_metal_flesh"],
+  "icon": "icons/skills/power_strike.ktx2",
+  "illustration": "art/skills/power_strike.webp"
+}
+
+monsters.json (una entrada):
+{
+  "id": "wolf_grey_3",
+  "family": "wolf",
+  "model": "wolf_base",
+  "variant": { "tint": "#8a8a85", "scale": 1.0 },
+  "name": "Lobo Gris",
+  "level": 3,
+  "aggressive": false,
+  "social": true,
+  "hp": 120,
+  "pAtk": 14, "pDef": 30, "mDef": 22,
+  "speed": { "walk": 2.2, "run": 6.0 },
+  "aggroRange": 0,
+  "leashRange": 30,
+  "exp": 60, "sp": 5,
+  "drops": "drops_wolf_low",
+  "respawnSec": 30
+}
+
+shops.json (una entrada):
+{
+  "id": "aurelion_grocery",
+  "npc": "npc_aurelion_grocer",
+  "sellRatio": 0.5,
+  "items": ["potion_hp_lesser", "potion_mp_lesser", "scroll_escape",
+            "soulshot_ng", "arrow_wooden"]
+}
+
+teleports.json (una entrada):
+{
+  "id": "aurelion_gate",
+  "npc": "npc_aurelion_gatekeeper",
+  "destinations": [
+    { "to": "aurelion_fields_1", "cost": 0 },
+    { "to": "ruins_of_fang",     "cost": 1200 },
+    { "to": "port_ambervale",    "cost": 8000, "locked": true }
+  ]
+}
+
+================================ FIN DEL PROMPT =================================
