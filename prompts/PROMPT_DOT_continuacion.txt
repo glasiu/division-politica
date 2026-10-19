@@ -1,0 +1,323 @@
+================================================================================
+ PROMPT PARA DOT: CONTINUAR "CRÓNICAS DE AURELION" DESDE LA ÚLTIMA ENTREGA
+ Versión 1.0 · 19-oct-2026 · Complementa a docs\PROMPT_MAESTRO.txt (v2.0)
+================================================================================
+
+######################## NOTA PARA TI (EL HUMANO) ##############################
+#                ESTA PARTE NO SE PEGA EN DOT                                  #
+################################################################################
+Antes de pegar el prompt:
+  1. En el navegador que usa Dot, entra a https://studio.tripo3d.ai e
+     inicia sesión TÚ con tu cuenta. Dot nunca debe ver ni escribir tu
+     contraseña.
+  2. (Opcional) Fija cuántos créditos de Tripo puede gastar Dot. En
+     D:\IA_juego\.env añade la línea:
+       TRIPO_WEB_BUDGET=1500
+     Si no la pones, Dot usa los límites por defecto de la sección 6.
+  3. Deja a Dot en modo autónomo y con acceso a D:\IA_juego.
+  4. Que NO haya otro agente (Codex) trabajando a la vez en D:\IA_juego.
+Después copia TODO lo que está debajo de "INICIO DEL PROMPT" y pégalo en Dot.
+Si Dot se detiene, escríbele solo: continúa
+
+=============================== INICIO DEL PROMPT ===============================
+
+################################################################################
+## 1. QUIÉN ERES Y QUÉ HAY QUE HACER
+################################################################################
+Eres Dot y vas a CONTINUAR, sin empezar de cero, el desarrollo de "Crónicas
+de Aurelion": un MMORPG 3D en three.js inspirado en Lineage II, jugable en
+el teléfono, con SQL Server local, en D:\IA_juego (Windows).
+
+  - Las instrucciones completas del proyecto están en el prompt maestro
+    v2.0: docs\PROMPT_MAESTRO.txt. Este prompt NO lo reemplaza: te dice
+    cómo retomar el trabajo y cómo usar Tripo con la sesión del usuario.
+  - El avance hecho hasta ahora está COMPRIMIDO en:
+      D:\IA_juego\entregas\DOT_2026-10-19
+  - En tu máquina ya están instalados Blender y la sesión de Tripo 3D del
+    usuario (en el navegador).
+
+Lo que salió mal en el intento anterior en este proyecto. No se repite:
+  - Personajes cuadrados, hechos con primitivas.
+  - Rostros deformes, modelados a mano en Blender.
+  - Suelo plano sin detalle.
+  - Personajes que se deslizaban sin animación.
+  - Sonido sintético.
+  - Carga del juego a través de la caché de Chrome.
+  - Días puliendo lo mismo sin cambiar de estrategia.
+Las Reglas de Oro (sección 4 del prompt maestro) son OBLIGATORIAS. Sobre
+todo R1, R2, R3, R4, R5, R6 y R8.
+
+################################################################################
+## 2. UBICACIONES
+################################################################################
+  Proyecto ........................ D:\IA_juego
+  Entrega comprimida a recuperar .. D:\IA_juego\entregas\DOT_2026-10-19
+                                    (puede ser .zip, .7z, una carpeta con
+                                    archivos comprimidos, o una carpeta
+                                    normal)
+  Prompt maestro .................. D:\IA_juego\docs\PROMPT_MAESTRO.txt
+                                    (o dentro de la entrega: docs\...)
+  Estado del agente ............... D:\IA_juego\docs\ESTADO.json y AGENTS.md
+  Referencias visuales ............ D:\IA_juego\assets_src\referencias\
+  Modelos crudos de Tripo ......... D:\IA_juego\assets_src\tripo_raw\
+  Comentarios del usuario ......... D:\IA_juego\docs\FEEDBACK_USUARIO.md
+  Tu informe para el usuario ...... D:\IA_juego\docs\INFORME_PARA_EL_USUARIO.md
+  Tus entregas .................... D:\IA_juego\entregas\
+  SQL Server local ................ usuario sa, clave 123456 (solo en
+                                    D:\IA_juego\.env.admin)
+
+################################################################################
+## 3. PASO 1: RECUPERAR LA ENTREGA SIN PERDER NADA
+################################################################################
+  0. Candado de un solo agente:
+     - Si existe D:\IA_juego\.run\AGENTE_ACTIVO.lock con una hora de hace
+       menos de 30 minutos, otro agente está trabajando. No toques el
+       proyecto: anótalo en el INFORME y espera revisándolo cada 10 min,
+       como máximo 1 h.
+     - Si no existe, o es más viejo, créalo con tu nombre y la hora.
+       Actualízalo cada 10 minutos y bórralo al terminar.
+  1. RESPALDO antes de todo. Si D:\IA_juego tiene archivos además de
+     "entregas", comprime el estado actual en:
+       D:\IA_juego\entregas\_respaldo_<AAAA-MM-DD_HHmm>.zip
+     Excluye node_modules, entregas, dist y logs. Nunca borres ni
+     sobrescribas una entrega existente.
+  2. IDENTIFICA la entrega:
+       Get-ChildItem -LiteralPath 'D:\IA_juego\entregas' -Force |
+         Where-Object Name -like 'DOT_2026-10-19*'
+     - .zip: Expand-Archive -LiteralPath <zip> -DestinationPath
+       'D:\IA_juego\entregas\_extraido\DOT_2026-10-19' -Force
+     - .7z o .rar: usa 7-Zip ("C:\Program Files\7-Zip\7z.exe" x <archivo>
+       -o<destino> -y). Si no está, instálalo:
+         winget install -e --id 7zip.7zip --silent
+           --accept-package-agreements --accept-source-agreements
+     - Carpeta: si dentro hay más archivos comprimidos, extrae cada uno en
+       _extraido\DOT_2026-10-19\<nombre>. Si no, úsala tal cual.
+  3. INSPECCIONA lo extraído (árbol de 3 niveles). Busca package.json,
+     docs\ESTADO.json, docs\PROMPT_MAESTRO.txt, AGENTS.md, .git, apps\,
+     packages\, db\migrations\ y assets_src\.
+     Si la raíz del proyecto está un nivel más abajo, úsala como origen.
+  4. RESTAURA en D:\IA_juego:
+     a) Si D:\IA_juego NO tiene proyecto (no hay package.json ni
+        docs\ESTADO.json), copia todo lo extraído:
+          robocopy <origen> D:\IA_juego /E /R:1 /W:1 /XD node_modules
+        Robocopy devuelve 0-7 cuando todo fue bien, y 8 o más cuando hubo
+        error.
+     b) Si D:\IA_juego YA tiene proyecto:
+        - Compara ESTADO.json.actualizado y git log de los dos.
+        - Gana el MÁS NUEVO. Del otro copia solo los archivos que falten:
+          robocopy /E /XC /XN /XO.
+        - Anota las diferencias en el diagnóstico.
+     c) Si hay prompt maestro en los dos sitios, se queda el de versión
+        más alta en la cabecera (debe ser 2.0).
+  5. LO QUE NO VIAJA EN UNA ENTREGA (por seguridad o por tamaño). Lo
+     regeneras tú:
+     - node_modules: pnpm install. Si hay lockfile, primero con
+       --frozen-lockfile; si falla, sin él, y lo anotas.
+     - .env.admin: SQL_SA_PASSWORD=123456.
+     - .env:
+       - Contraseña nueva para iajuego_app (ALTER LOGIN iajuego_app WITH
+         PASSWORD=...). Si el login no existe, créalo según la sección 3.7
+         del maestro.
+       - ADMIN_PASSWORD nueva (vuelve a ejecutar "pnpm db:seed" para
+         actualizar el hash).
+       - FUSIONA con lo que ya exista. NUNCA borres TRIPO_WEB_BUDGET ni
+         otras claves del usuario.
+     - Base de datos: "pnpm db:migrate" (idempotente) y "pnpm db:seed".
+     - logs\ y .run\: se crean vacíos.
+
+################################################################################
+## 4. PASO 2: DIAGNÓSTICO DEL ESTADO REAL (antes de programar nada)
+################################################################################
+  Escribe docs\DIAGNOSTICO_DOT_<AAAA-MM-DD>.md con:
+  1. Fase y tarea según ESTADO.json, y el siguiente_paso que dice.
+  2. Resultado REAL de:
+       pnpm typecheck · pnpm lint · pnpm test · pnpm data:validate
+     y de "pnpm verify:fase N" para CADA fase marcada como completa.
+     Si un script no existe, anótalo.
+  3. ¿Arranca el juego?
+     - pnpm build y servidor en segundo plano (sección 3.4 del maestro).
+     - GET /healthz.
+     - Una captura con Playwright en 1920x1080 y otra en 915x412.
+  4. Inventario de assets:
+     - Cuántos hay en el manifest y cuántos están marcados "provisional"
+       (hechos sin Tripo).
+     - Qué personaje usa el Admin (¿Tripo, sustituto CC0 o primitivas?).
+  5. Deudas técnicas abiertas (DEUDA_TECNICA.md) y bloqueos.
+  6. Lista de problemas encontrados, cada uno con su gravedad.
+  DECISIÓN tras el diagnóstico:
+  - Si una fase marcada como completa NO pasa su verify:fase, se reabre:
+    vuelve a esa fase y corrígela antes de seguir.
+  - Si todo pasa, continúa desde ESTADO.json.siguiente_paso.
+  - Actualiza ESTADO.json y añade una línea en
+    logs\agente\historial.jsonl: "retomado por Dot desde
+    DOT_2026-10-19".
+
+################################################################################
+## 5. PASO 3: CONTINUAR CON EL PROMPT MAESTRO
+################################################################################
+  1. Lee docs\PROMPT_MAESTRO.txt POR BLOQUES de 120 líneas:
+       Get-Content -LiteralPath D:\IA_juego\docs\PROMPT_MAESTRO.txt
+         -Encoding UTF8 | Select-Object -Skip <n> -First 120
+     Primero las secciones 1 a 6 y el Anexo I. Después, solo las
+     secciones que pida la fase en curso (la tabla está en AGENTS.md).
+  2. Si AGENTS.md no existe, créalo como indica la sección 2.6 del maestro.
+  3. Sigue el bucle por tarea (2.5) y el árbol ante bloqueos (2.3) del
+     maestro.
+  4. REGLA CERO (2.1):
+     - No preguntes, no esperes y no cierres tu turno mientras haya
+       tareas en la cola.
+     - Las únicas acciones que NO haces nunca son las de la sección 8 de
+       este prompt (contraseñas, compras, borrar fuera del proyecto,
+       publicar). Si alguna hiciera falta, la anotas en el INFORME como
+       "Opcional para ti" y sigues con otra tarea.
+  5. PRIORIDADES ahora que hay Tripo:
+     a) Que lo ya hecho funcione (las fases reabiertas, si las hay).
+     b) Fase 3, pipeline: que import_clean, optimize y manifest procesen
+        bien lo que descargues de Tripo.
+     c) Fase 4, el Admin con Tripo: rostro y animación (11.4-11.6 del
+        maestro). Si el Admin actual es provisional, se rehace AHORA.
+     d) Regenera con Tripo los assets marcados "provisional", del más
+        visible al menos visible: Admin, monstruos del slice, fuente,
+        rocas madre, props.
+     e) Después sigue el orden normal de fases.
+
+################################################################################
+## 6. TRIPO 3D CON LA SESIÓN DEL USUARIO (navegador)
+################################################################################
+  La sesión la inició el usuario en https://studio.tripo3d.ai. Tú la usas
+  desde el navegador. Si además existe TRIPO_API_KEY en .env, puedes usar la
+  API v3 (Anexo C del maestro); si no, todo se hace por la web.
+
+  6.1 ANTES DE GENERAR
+  - Busca primero en las bibliotecas gratuitas (11.7 del maestro). Tripo
+    es para personajes, monstruos, props protagonistas y modelos madre.
+  - Imagen de referencia lista (Anexo B):
+    - Personajes: hoja en pose T con 4 vistas y hoja de rostro.
+    - Props: vista 3/4 sobre fondo gris.
+    Hazlas con tu generación de imágenes. Si no puedes, usa la pestaña
+    "Image" de Tripo (cuesta créditos) o la cadena de 11.3.
+  - Apunta el saldo de créditos que se ve arriba en Tripo (p. ej. "14765")
+    ANTES de cada generación, y otra vez DESPUÉS.
+
+  6.2 AJUSTES EN LA WEB (los del artículo de referencia; ver
+      assets_src\referencias\ejemplos_flujo_tripo\)
+  - PERSONAJES y criaturas:
+    - Model → "Smart Mesh" → entrada multivista (4 casillas: frente,
+      izquierda, espalda, derecha).
+    - AI Model "P2.0", Topology QUAD, Polycount 25000.
+    - Number of Generation 1 o 2.
+    - Revisa la MALLA BLANCA en el visor. Si una zona está mal, usa
+      "Edit Mesh" (como máximo 3 veces). Si está bien, pulsa "Texture".
+  - PROPS y escenario:
+    - Model → "HD Model", AI Model "H3.1 – Best Quality".
+    - Geometry & Texture: Ultra Mesh Quality ON en los protagonistas,
+      Texture ON, Texture Quality 2K (4K solo en protagonistas), Remove
+      Lighting ON, PBR ON.
+    - Topology Triangle, Polycount ~40000 (después se reduce con LODs).
+  - "Rig" de Tripo: puedes usarlo en bípedos si exporta un esqueleto
+    compatible con Mixamo. Si no, rig con el pipeline (11.5 del maestro).
+  - Privacidad: déjala como esté. NUNCA publiques ni compartas modelos en
+    "Creator Hub" ni en sitios públicos.
+
+  6.3 EXPORTAR Y GUARDAR
+  - Export → GLB. Si es quad y solo ofrece FBX, usa FBX.
+  - Guarda en D:\IA_juego\assets_src\tripo_raw\<asset_id>\, junto con
+    tripo_<asset_id>.json:
+      { asset_id, fecha, tipo (personaje|criatura|prop), modo (Smart Mesh
+        P2.0 | HD Model H3.1), ajustes, imagen_referencia, generaciones,
+        ediciones, creditos_antes, creditos_despues, archivo, notas }
+  - Después "pnpm assets:build" (o los scripts de la Fase 3) lo procesa:
+    limpieza, rostro, rig, LODs, KTX2 y manifest. Registra el gasto en
+    ESTADO.json.tripo y la licencia en LICENCIAS_ASSETS.md (generado con
+    la cuenta del usuario).
+
+  6.4 LÍMITES DE CRÉDITOS (no te los saltes)
+  - Presupuesto de la sesión = TRIPO_WEB_BUDGET de .env. Si no existe:
+    1500 créditos por sesión.
+  - Reserva: nunca bajes el saldo por debajo del 10% de lo que había al
+    empezar la sesión.
+  - Por asset:
+    | Tipo                     | Límite                                    |
+    | Personaje o criatura     | 3 generaciones + 3 Edit Mesh + 2 texturas;|
+    |                          | ≤ 400 créditos                            |
+    | Prop                     | 2 generaciones + 1 textura                |
+  - Si un asset no pasa la QA dentro del límite: se queda el mejor como
+    "provisional", se registra una D-### y pasas al siguiente.
+  - Con el presupuesto agotado: termina en el pipeline lo ya descargado
+    y sigue con tareas que no usen Tripo.
+
+  6.5 SI LA SESIÓN DE TRIPO NO ESTÁ ACTIVA
+  - Si ves la pantalla de login, la sesión caducó o hay un captcha:
+    - NO escribas credenciales ni intentes resolver el captcha.
+    - Pon ESTADO.prerequisitos.tripo_web = false.
+    - En el INFORME, "Opcional para ti": "vuelve a iniciar sesión en
+      Tripo".
+    - Sigue con la cadena de respaldo (2.9 y 11.10 del maestro) o con
+      otras tareas.
+  - Al empezar cada fase que use Tripo, comprueba de nuevo si la sesión
+    volvió (la condición reintentar_si de la DT).
+
+################################################################################
+## 7. BLENDER (ya instalado)
+################################################################################
+  - Detecta blender.exe en "C:\Program Files\Blender Foundation\*" o con
+    Get-Command, y guarda la ruta en .env como BLENDER_PATH.
+  - Úsalo SIEMPRE en modo headless con scripts:
+      & $env:BLENDER_PATH -b --factory-startup --python-exit-code 1
+        -P tools\blender\<script>.py -- <args>
+    (--python-exit-code va ANTES de -P.)
+  - Blender MCP es opcional (11.2 del maestro). No modeles a mano ni
+    esculpas rostros (R1 y R2).
+
+################################################################################
+## 8. NUNCA HAGAS ESTO
+################################################################################
+  - Escribir, leer o guardar contraseñas del usuario: Tripo, Windows,
+    correo. Las contraseñas del proyecto (.env y .env.admin) sí, pero
+    nunca en git ni en entregas.
+  - Comprar créditos, cambiar de plan, aceptar pagos o suscripciones.
+  - Borrar o mover nada fuera de D:\IA_juego. Borrar entregas o
+    respaldos.
+  - Publicar modelos, código o capturas en Internet.
+  - Construir personajes, monstruos o edificios con primitivas, o
+    esculpir rostros a mano (R1 y R2).
+  - Empezar el proyecto de cero o reescribir lo que ya funciona sin que
+    lo pida el diagnóstico.
+  - Editar docs\PROMPT_MAESTRO.txt (las correcciones van en
+    DECISIONES.md).
+  - Trabajar mientras otro agente tiene el candado activo (sección 3,
+    paso 0).
+
+################################################################################
+## 9. ENTREGAS E INFORME
+################################################################################
+  - Al cerrar cada fase, y SIEMPRE antes de terminar tu sesión, crea:
+      D:\IA_juego\entregas\DOT_<AAAA-MM-DD>_<HHmm>.zip
+    con el proyecto completo. Excluye: node_modules, dist, .env,
+    .env.admin, logs, .run, assets_src\audio_raw\_cache y entregas.
+  - Dentro del zip va docs\ENTREGA_<AAAA-MM-DD_HHmm>.md con:
+    - Qué hiciste y qué fases cerraste.
+    - Assets nuevos de Tripo y créditos gastados.
+    - Qué falta y siguiente_paso.
+    - Cómo restaurar (secciones 3 y 4 de este prompt).
+  - Comprueba el zip con Expand-Archive en una carpeta temporal y luego
+    borra esa carpeta.
+  - Actualiza docs\INFORME_PARA_EL_USUARIO.md (lo más reciente arriba):
+    - Qué se puede ver y probar, con capturas.
+    - Créditos de Tripo gastados.
+    - Decisiones tomadas.
+    - "Opcional para ti".
+  - Haz commit con git en cada tarea (2.5 del maestro), si el repositorio
+    existe. Si no existe, git init según la Fase 0.
+
+################################################################################
+## 10. PRIMERA ACCIÓN
+################################################################################
+  1. Sección 3: candado, respaldo, extracción y restauración.
+  2. Sección 4: diagnóstico. Escribe DIAGNOSTICO_DOT_<fecha>.md.
+  3. Sección 5: retoma el prompt maestro desde el punto que diga el
+     diagnóstico, con las prioridades de 5.5.
+  4. No te detengas al terminar una tarea: sigue con la cola. Antes de que
+     acabe tu sesión, haz la entrega (sección 9) y libera el candado.
+
+================================ FIN DEL PROMPT ================================
