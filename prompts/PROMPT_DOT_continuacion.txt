@@ -9,15 +9,28 @@
 Antes de pegar el prompt:
   1. En el navegador que usa Dot, entra a https://studio.tripo3d.ai e
      inicia sesión TÚ con tu cuenta. Dot nunca debe ver ni escribir tu
-     contraseña.
-  2. (Opcional) Fija cuántos créditos de Tripo puede gastar Dot. En
-     D:\IA_juego\.env añade la línea:
+     contraseña. Si tu plan permite modelos privados, déjalo en
+     "Private" por defecto (Dot no cambia ajustes de tu cuenta).
+  2. (Opcional) Fija cuántos créditos de Tripo puede gastar Dot EN
+     TOTAL (no por día ni por sesión). En D:\IA_juego\.env añade:
        TRIPO_WEB_BUDGET=1500
      Si no la pones, Dot usa los límites por defecto de la sección 6.
+     Referencia: Smart Mesh ≈ 100, HD Model ≈ 45 y Texture ≈ 30
+     créditos; 1500 alcanzan para el Admin, unos 3 monstruos y la fuente.
   3. Deja a Dot en modo autónomo y con acceso a D:\IA_juego.
   4. Que NO haya otro agente (Codex) trabajando a la vez en D:\IA_juego.
+     Si Codex ya paró pero dejó D:\IA_juego\.run\AGENTE_ACTIVO.lock,
+     bórralo tú para que Dot no espere (si no, lo dará por huérfano 30
+     min después de su última actualización).
+  5. No compartas entregas\_respaldo_*.zip ni entregas\_extraido\:
+     pueden llevar tus .env y .env.admin. Las entregas DOT_*.zip no.
 Después copia TODO lo que está debajo de "INICIO DEL PROMPT" y pégalo en Dot.
 Si Dot se detiene, escríbele solo: continúa
+Si Dot te pide confirmación (gastar créditos, descargar, instalar) o
+"tomar el control" del navegador para iniciar sesión: inicia sesión TÚ,
+devuélvele el control y respóndele: "autorizado según la sección 5,
+continúa". Si Dot dice que no ve D:\IA_juego, está en otra máquina:
+elige la opción A o B que te propone (sección 3, paso previo).
 
 =============================== INICIO DEL PROMPT ===============================
 
@@ -69,61 +82,213 @@ todo R1, R2, R3, R4, R5, R6 y R8.
 ################################################################################
 ## 3. PASO 1: RECUPERAR LA ENTREGA SIN PERDER NADA
 ################################################################################
-  0. Candado de un solo agente:
-     - Si existe D:\IA_juego\.run\AGENTE_ACTIVO.lock con una hora de hace
-       menos de 30 minutos, otro agente está trabajando. No toques el
-       proyecto: anótalo en el INFORME y espera revisándolo cada 10 min,
-       como máximo 1 h.
-     - Si no existe, o es más viejo, créalo con tu nombre y la hora.
-       Actualízalo cada 10 minutos y bórralo al terminar.
+  CONVENCIÓN: en este prompt, un comando partido en varias líneas es UNA
+  sola línea (únelas con espacios antes de ejecutarlo), salvo cuando la
+  línea acaba en "|". Cada comando es un proceso nuevo: no conserva $vars.
+  PASO PREVIO. ¿ESTÁS EN LA MÁQUINA QUE TIENE EL PROYECTO?
+     Comprueba:
+       $PSVersionTable.PSVersion.ToString(); $env:COMPUTERNAME;
+       Test-Path -LiteralPath 'D:\IA_juego\entregas';
+       Get-PSDrive -PSProvider FileSystem
+     - Hay PowerShell y D:\IA_juego\entregas tiene DOT_2026-10-19: sigue
+       con el paso 0.
+     - La carpeta está en otra unidad o ruta de ESTA máquina y D: no
+       existe: subst D: "<carpeta que contiene IA_juego>" (sin admin) y
+       anótalo en DECISIONES.md. Si D: existe y es otra cosa, usa esa
+       ruta como raíz con una D-### (el maestro asume D:\IA_juego).
+     - No hay Windows/PowerShell (terminal Linux o macOS, p. ej. una VM
+       aparte) o la entrega no aparece en ninguna unidad:
+       - NO crees D:\IA_juego, NO instales nada y NO empieces de cero.
+       - Escribe en el chat (única excepción a la Regla Cero) qué ves
+         (sistema, unidades, carpeta actual) y estas opciones:
+           A) Que el usuario te ejecute en el PC que tiene D:\IA_juego o
+              comparta esa carpeta con tu máquina.
+           B) Que te suba el archivo de la entrega. Entonces trabajas en
+              MODO SOLO ASSETS: secciones 6 y 7 con los assets
+              "provisional" que diga su ESTADO.json, sin SQL, servidor ni
+              código. Entregas DOT_assets_<AAAA-MM-DD_HHmm>.zip (cada
+              asset en tripo_raw\<asset_id>\ con su JSON) y la nota
+              "cópialo en D:\IA_juego\assets_src\incoming\" (R16).
+       - Termina tu turno ahí.
+  0. Candado de un solo agente (D:\IA_juego\.run\AGENTE_ACTIVO.lock):
+     - Contenido JSON: {"agente":"Dot","equipo":"<COMPUTERNAME>",
+       "inicio_utc":"<ISO>","latido_utc":"<ISO>"}, con horas en UTC. Si el
+       archivo no es JSON (candado viejo de otro agente), usa su
+       LastWriteTimeUtc.
+     - Créalo de forma ATÓMICA: crea .run\ si falta y usa
+       New-Item -ItemType File SIN -Force (falla si ya existe).
+     - Si existe y "agente" es "Dot": es tuyo, de una sesión cortada o de
+       un "continúa". Retómalo y actualiza latido_utc. No te esperes a ti
+       mismo.
+     - Si es de OTRO agente y su latido tiene menos de 30 min: no
+       modifiques NADA en D:\IA_juego (tampoco el INFORME). Vuelve a
+       mirar cada 10 min (Start-Sleep -Seconds 600, con timeout de
+       comando suficiente), como máximo 6 veces. Si sigue vivo, dilo en
+       tu respuesta y termina.
+     - Si el latido tiene más de 30 min, el candado está HUÉRFANO:
+       renómbralo a AGENTE_ACTIVO.lock.huerfano_<AAAA-MM-DD_HHmm> (no lo
+       borres), crea el tuyo y anótalo en el diagnóstico.
+     - Actualiza latido_utc al empezar cada tarea y mientras vigilas
+       comandos largos. Nada de bucles de latido en segundo plano: si te
+       cortan seguirían vivos y el candado no caducaría nunca.
+     - Al terminar la sesión, bórralo SOLO si sigue siendo tuyo.
   1. RESPALDO antes de todo. Si D:\IA_juego tiene archivos además de
      "entregas", comprime el estado actual en:
        D:\IA_juego\entregas\_respaldo_<AAAA-MM-DD_HHmm>.zip
-     Excluye node_modules, entregas, dist y logs. Nunca borres ni
-     sobrescribas una entrega existente.
-  2. IDENTIFICA la entrega:
-       Get-ChildItem -LiteralPath 'D:\IA_juego\entregas' -Force |
-         Where-Object Name -like 'DOT_2026-10-19*'
-     - .zip: Expand-Archive -LiteralPath <zip> -DestinationPath
-       'D:\IA_juego\entregas\_extraido\DOT_2026-10-19' -Force
-     - .7z o .rar: usa 7-Zip ("C:\Program Files\7-Zip\7z.exe" x <archivo>
-       -o<destino> -y). Si no está, instálalo:
-         winget install -e --id 7zip.7zip --silent
-           --accept-package-agreements --accept-source-agreements
-     - Carpeta: si dentro hay más archivos comprimidos, extrae cada uno en
-       _extraido\DOT_2026-10-19\<nombre>. Si no, úsala tal cual.
+     Nunca borres ni sobrescribas una entrega o un respaldo existente.
+     - NO uses Compress-Archive: en PowerShell 5.1 falla con archivos de
+       más de 2 GB, con rutas de más de 260 caracteres y con archivos
+       abiertos, y puede saltarse lo oculto (la carpeta .git lo es).
+       Usa el tar.exe de Windows (no el de Git; en adelante "tar" es esa
+       ruta completa), desde la raíz:
+         & "$env:SystemRoot\System32\tar.exe" -a -c -f "<zip>" --exclude node_modules --exclude entregas --exclude dist --exclude logs -C D:\IA_juego .
+       Si $LASTEXITCODE no es 0 (p. ej. un archivo bloqueado), detén
+       nuestros procesos node (3.4 del maestro) y repite. Sin respaldo
+       válido no pasas al punto 4.
+     - Este respaldo SÍ lleva .git, .env y .env.admin, para no perder
+       claves ni historia. No se comparte, no se sube y no va a git.
+     - Compruébalo: "tar -t -f <zip>" debe listar ./.git/HEAD y
+       ./docs/ESTADO.json (si existían). Guarda su SHA256 (Get-FileHash)
+       en <zip>.sha256.
+     - Si D: tiene menos espacio libre que el doble del proyecto, anótalo
+       y respalda al menos .git, docs, .env, .env.admin y assets_src.
+  2. IDENTIFICA la entrega del usuario. Ignora _respaldo_*, _extraido,
+     _verif_*, _conflictos y las DOT_<fecha>_<HHmm>.zip que crees tú (hoy
+     empiezan igual):
+       Get-ChildItem -LiteralPath 'D:\IA_juego\entregas' -Force | Where-Object Name -match '^DOT_2026-10-19(\.[\w.]+)?$'
+     - Antes de extraer:
+       - Unblock-File al archivo. Si vino por el navegador, la marca de
+         Internet bloquea luego los .ps1.
+       - Prueba su integridad: "7z t" o "tar -t -f" sin errores. Si trae
+         un .sha256, compáralo.
+       - Si está dañado: extrae lo que se pueda, NO restaures encima de
+         nada y registra una DT crítica.
+     - <destino> SIEMPRE nuevo y vacío:
+         D:\IA_juego\entregas\_extraido\DOT_2026-10-19_<HHmm>
+       Créalo con New-Item -ItemType Directory. Nunca reutilices uno
+       anterior: mezclaría restos de otro intento.
+     - .zip: & "$env:SystemRoot\System32\tar.exe" -x -f "<zip>" -C "<destino>"
+       Si falla (rutas largas, etc.), usa 7-Zip.
+     - .7z o .rar: 7-Zip. Lleva & delante y -o pegado al destino:
+         & 'C:\Program Files\7-Zip\7z.exe' x '<archivo>' '-o<destino>' -y -bd
+       $LASTEXITCODE 0 = bien, 1 = avisos (revísalos), 2 o más = error.
+       En Windows 11 reciente, tar también lee .7z y .rar.
+     - Instalar 7-Zip es opcional (pide admin; sin admin, usa tar):
+         winget install -e --id 7zip.7zip --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+     - Varios volúmenes (.7z.001, .zip.001, .z01, .part1.rar): extrae
+       SOLO el primero con 7-Zip, que une los demás. Nunca cada parte por
+       separado.
+     - Expand-Archive solo como último recurso y solo con .zip: es lento
+       y falla con rutas de más de 260 caracteres.
+     - Si es una carpeta con más archivos comprimidos dentro, extrae cada
+       uno en <destino>\<nombre>. Si no, cópiala a <destino> (robocopy /E)
+       y usa la copia: la entrega original NUNCA se modifica.
   3. INSPECCIONA lo extraído (árbol de 3 niveles). Busca package.json,
      docs\ESTADO.json, docs\PROMPT_MAESTRO.txt, AGENTS.md, .git, apps\,
      packages\, db\migrations\ y assets_src\.
-     Si la raíz del proyecto está un nivel más abajo, úsala como origen.
-  4. RESTAURA en D:\IA_juego:
+     Si la raíz del proyecto está un nivel más abajo, úsala como
+     <origen>. Además:
+     - Si trae .git: "git -C <origen> fsck --no-dangling" y
+       "git -C <origen> status". Una .git dañada no se fusiona: se
+       restaura desde los archivos (4b, sin git) y se registra una DT.
+     - Si trae .env, .env.admin, .env.bak* o .run\: NO se restauran
+       (punto 4). Las claves de esos .env que falten en D:\IA_juego se
+       fusionan en el punto 5. En el INFORME, "Opcional para ti": "la
+       entrega DOT_2026-10-19 llevaba secretos; rota <NOMBRES>".
+  4. RESTAURA en D:\IA_juego. Crea antes la carpeta logs. En robocopy,
+     rutas SIN "\" final ("D:\x\" rompe las comillas). /NFL /NDL y /LOG
+     evitan miles de líneas de salida. Robocopy devuelve 0-7 si todo fue
+     bien y 8 o más si hubo error, pero tu herramienta verá "exit 1" como
+     fallo. Por eso termina el MISMO comando con:
+       ; if ($LASTEXITCODE -ge 8) { throw "robocopy $LASTEXITCODE" }; $global:LASTEXITCODE = 0
      a) Si D:\IA_juego NO tiene proyecto (no hay package.json ni
-        docs\ESTADO.json), copia todo lo extraído:
-          robocopy <origen> D:\IA_juego /E /R:1 /W:1 /XD node_modules
-        Robocopy devuelve 0-7 cuando todo fue bien, y 8 o más cuando hubo
-        error.
-     b) Si D:\IA_juego YA tiene proyecto:
-        - Compara ESTADO.json.actualizado y git log de los dos.
-        - Gana el MÁS NUEVO. Del otro copia solo los archivos que falten:
-          robocopy /E /XC /XN /XO.
-        - Anota las diferencias en el diagnóstico.
+        docs\ESTADO.json), copia lo extraído:
+          robocopy "<origen>" "D:\IA_juego" /E /XO /XJ /R:1 /W:1 /NP /NFL /NDL /XD node_modules .run logs dist /XF .env .env.admin .env.bak* /LOG:D:\IA_juego\logs\robocopy_restaura.log
+        - /XO evita pisar con algo más viejo lo que el usuario ya dejó
+          (referencias, FEEDBACK_USUARIO.md).
+        - .env y .env.admin NUNCA se copian desde una entrega: el .env
+          del usuario ya lleva TRIPO_WEB_BUDGET. Sus claves se fusionan
+          en el punto 5.
+        - Tampoco .run\: pisaría tu candado con uno viejo.
+     b) Si D:\IA_juego YA tiene proyecto: NUNCA copies una carpeta encima
+        de la otra, ni una .git sobre otra .git. "Copiar solo lo que
+        falta" no trae los cambios del lado más nuevo y resucita lo que
+        este borró o renombró (p. ej. migraciones).
+        - Asegura lo local: si "git status --porcelain" no está vacío,
+          git switch -c rescate/<AAAA-MM-DD_HHmm>, git add (revisado:
+          sección 9) y commit. Aquí nada de stash, reset ni clean.
+        - Si LOS DOS tienen .git, decide con git, no con fechas:
+          · Si <origen> tiene cambios sin commit, commitéalos ALLÍ (rama
+            rescate-entrega/<fecha>): fetch solo trae commits.
+          · git -C D:\IA_juego fetch "<origen>" "+refs/heads/*:refs/remotes/entrega/*"
+            con <rama> = git -C "<origen>" branch --show-current.
+          · Antes de fusionar, copia los objetos LFS que falten (van por
+            hash, es seguro):
+              robocopy "<origen>\.git\lfs\objects" "D:\IA_juego\.git\lfs\objects" /E /XC /XN /XO
+          · Si HEAD es ancestro de entrega/<rama>
+            (git merge-base --is-ancestor): git merge --ff-only entrega/<rama>.
+          · Si entrega/<rama> es ancestro de HEAD: no hay nada que traer.
+          · Si divergen: rama integra/<AAAA-MM-DD>,
+            git merge --no-ff --no-edit entrega/<rama>, resuelve cada
+            conflicto conservando el trabajo de los dos y pasa
+            "pnpm check". Si no puedes: git merge --abort, sigue en la
+            rama cuyo ESTADO.json esté más avanzado y registra una DT
+            crítica.
+        - Si alguno NO tiene .git: compara con Get-FileHash -Algorithm
+          SHA256.
+          · Solo en la entrega → se copia.
+          · Solo en local → se queda.
+          · En los dos y distinto → CONFLICTO: gana el lado con
+            ESTADO.json.actualizado más reciente (en UTC), y la versión
+            perdedora se guarda, sin borrarla, en
+            D:\IA_juego\entregas\_conflictos\<AAAA-MM-DD_HHmm>\<ruta>.
+        - Lo que git no rastrea (ignorado) se copia solo si falta:
+            robocopy "<origen>" "D:\IA_juego" /E /XC /XN /XO /XJ /NP /NFL /NDL /R:1 /W:1 /XD .git node_modules .run logs dist /XF .env .env.admin .env.bak*
+        - Anota en el diagnóstico qué lado ganó, qué se copió y cada
+          conflicto.
      c) Si hay prompt maestro en los dos sitios, se queda el de versión
         más alta en la cabecera (debe ser 2.0).
   5. LO QUE NO VIAJA EN UNA ENTREGA (por seguridad o por tamaño). Lo
      regeneras tú:
+     - Herramientas de ESTA máquina (si no es la del agente anterior,
+       faltarán): ejecuta tools\setup\preflight.ps1 con
+       powershell -NoProfile -ExecutionPolicy Bypass -File e instala lo
+       que falte con Install-Pkg (3.3 del maestro): Node 24, pnpm con la
+       versión EXACTA de "packageManager" del package.json, git, ffmpeg,
+       KTX y uv (el venv de Python vive en %LOCALAPPDATA%\IA_juego\venv
+       y no viaja). Sin instancia de SQL Server, NO la instales: usa la
+       cadena SQL de 2.9 del maestro, DT crítica y "Opcional para ti".
      - node_modules: pnpm install. Si hay lockfile, primero con
-       --frozen-lockfile; si falla, sin él, y lo anotas.
-     - .env.admin: SQL_SA_PASSWORD=123456.
-     - .env:
-       - Contraseña nueva para iajuego_app (ALTER LOGIN iajuego_app WITH
-         PASSWORD=...). Si el login no existe, créalo según la sección 3.7
-         del maestro.
-       - ADMIN_PASSWORD nueva (vuelve a ejecutar "pnpm db:seed" para
-         actualizar el hash).
+       --frozen-lockfile; si falla, sin él, y lo anotas. Después:
+       pnpm exec playwright install chromium (los navegadores viven en
+       %LOCALAPPDATA%\ms-playwright y tampoco viajan).
+     - .env.admin: solo si no existe o le falta la clave,
+       SQL_SA_PASSWORD=123456. Si existe, no lo toques.
+     - .env (escrito desde Node, UTF-8 sin BOM, 3.6 del maestro):
+       - ANTES de tocarlo, cópialo a .env.bak_<AAAA-MM-DD_HHmm> (no pises
+         un .env.bak anterior: puede ser la única copia del original).
        - FUSIONA con lo que ya exista. NUNCA borres TRIPO_WEB_BUDGET ni
          otras claves del usuario.
-     - Base de datos: "pnpm db:migrate" (idempotente) y "pnpm db:seed".
-     - logs\ y .run\: se crean vacíos.
+       - Contraseña de iajuego_app: si ya está en .env y la conexión de
+         prueba funciona, NO la cambies. Si falta o falla: genera una
+         (3.7, paso 6), escríbela en .env, haz ALTER LOGIN iajuego_app
+         WITH PASSWORD=... (o créalo según 3.7) y prueba la conexión. Si
+         algo falla, repite el ALTER con la clave que quedó en .env:
+         .env y SQL nunca deben quedar desalineados.
+       - ADMIN_PASSWORD: si existe, se conserva. Solo si falta, crea una
+         y ejecuta "pnpm db:seed"; comprueba con un login de prueba que
+         el hash quedó actualizado.
+     - Base de datos: si IAJuego ya existe con datos, respáldala ANTES de
+       migrar (con sa y $env:SQLCMDPASSWORD, sqlcmd -b):
+         BACKUP DATABASE IAJuego TO DISK=N'IAJuego_<AAAA-MM-DD_HHmm>.bak'
+           WITH COPY_ONLY, INIT, CHECKSUM
+       (queda en la carpeta Backup de la instancia) y RESTORE VERIFYONLY
+       de ese archivo. Después "pnpm db:migrate" (idempotente) y
+       "pnpm db:seed". Si db:migrate avisa de un checksum distinto en una
+       migración ya aplicada, no la edites ni toques schema_migrations:
+       migración nueva y una DT.
+     - logs\ y .run\: créalos si no existen, sin vaciar .run\ (ahí está
+       tu candado).
 
 ################################################################################
 ## 4. PASO 2: DIAGNÓSTICO DEL ESTADO REAL (antes de programar nada)
@@ -145,8 +310,15 @@ todo R1, R2, R3, R4, R5, R6 y R8.
   5. Deudas técnicas abiertas (DEUDA_TECNICA.md) y bloqueos.
   6. Lista de problemas encontrados, cada uno con su gravedad.
   DECISIÓN tras el diagnóstico:
-  - Si una fase marcada como completa NO pasa su verify:fase, se reabre:
-    vuelve a esa fase y corrígela antes de seguir.
+  - Si una fase marcada como completa NO pasa su verify:fase, mira POR
+    QUÉ antes de reabrirla:
+    - Causa del entorno (herramienta, navegador de Playwright, SQL,
+      puerto, clave, BLENDER_PATH): arregla el entorno (sección 3, paso
+      5), NO el código, y repite el verify.
+    - Causa del código o de los datos: se reabre. Vuelve a esa fase y
+      corrígela antes de seguir.
+    - Si en 2 intentos el entorno no se arregla (p. ej. no hay SQL
+      Server): DT con reintentar_si y sigues (2.3, N3-N4 del maestro).
   - Si todo pasa, continúa desde ESTADO.json.siguiente_paso.
   - Actualiza ESTADO.json y añade una línea en
     logs\agente\historial.jsonl: "retomado por Dot desde
@@ -170,6 +342,16 @@ todo R1, R2, R3, R4, R5, R6 y R8.
        este prompt (contraseñas, compras, borrar fuera del proyecto,
        publicar). Si alguna hiciera falta, la anotas en el INFORME como
        "Opcional para ti" y sigues con otra tarea.
+     - El usuario YA AUTORIZA, sin preguntar otra vez: gastar créditos de
+       SU cuenta de Tripo dentro de los límites de 6.4 (no es una compra),
+       descargar los modelos que exportes, instalar con winget lo de 3.3
+       del maestro y borrar carpetas temporales DENTRO de D:\IA_juego.
+       Si tu plataforma te obliga aun así a pedir confirmación, pídela UNA
+       sola vez, al principio y agrupada, y no vuelvas a preguntar.
+     - Las descargas del navegador caen en tu carpeta Descargas: CÓPIALAS
+       (Copy-Item) a assets_src\tripo_raw\<asset_id>\ cuando ya no haya
+       .crdownload ni .part (si es .zip, extráelo allí). No las muevas ni
+       las borres de Descargas (sección 8).
   5. PRIORIDADES ahora que hay Tripo:
      a) Que lo ya hecho funcione (las fases reabiertas, si las hay).
      b) Fase 3, pipeline: que import_clean, optimize y manifest procesen
@@ -187,15 +369,45 @@ todo R1, R2, R3, R4, R5, R6 y R8.
   La sesión la inició el usuario en https://studio.tripo3d.ai. Tú la usas
   desde el navegador. Si además existe TRIPO_API_KEY en .env, puedes usar la
   API v3 (Anexo C del maestro); si no, todo se hace por la web.
+  - Los saldos de la API (platform.tripo3d.ai) y de Studio son distintos:
+    TRIPO_CREDIT_BUDGET limita la API y TRIPO_WEB_BUDGET la web.
+  - Lo que el maestro pide a la API (3 semillas, textura v3.5 con delight,
+    rig v3.0 "mixamo") lo haces con los botones equivalentes (Anexo C,
+    "Equivalencias"). Anota las que confirmes en docs\tripo_api_snapshot.md.
+  - Sin TRIPO_API_KEY, la Fase 3 manda los pasos de Tripo al respaldo
+    (Rodin, MPFB2). Con la sesión web NO: pon "tripo_web": true en
+    capabilities.json y en ESTADO.prerequisitos, y haz que route.mjs
+    devuelva la ruta "tripo_web" (paso manual tuyo en el navegador; el
+    pipeline toma el archivo de tripo_raw). El respaldo solo entra con
+    6.5, con el tope del asset o con el presupuesto agotados.
 
   6.1 ANTES DE GENERAR
   - Busca primero en las bibliotecas gratuitas (11.7 del maestro). Tripo
     es para personajes, monstruos, props protagonistas y modelos madre.
+  - Antes de generar NADA, revisa el historial de la cuenta en Tripo
+    (My Models / Assets) y assets_src\tripo_raw\: el intento anterior
+    pudo dejar ese asset hecho. Si existe, re-expórtalo (no gasta una
+    generación) y pásale la QA; solo se regenera si no la pasa.
+  - Plan de gasto: antes del primer clic, escribe en DECISIONES.md la
+    lista de assets con su coste estimado (tabla de 6.4), P0 primero
+    (11.2: los créditos se reservan para P0). Si no cabe, recorta P1/P2.
   - Imagen de referencia lista (Anexo B):
-    - Personajes: hoja en pose T con 4 vistas y hoja de rostro.
-    - Props: vista 3/4 sobre fondo gris.
+    - Personajes: hoja en pose T con 4 vistas (B1) y hoja de rostro (B2).
+    - Criaturas: B3. Props: vista 3/4 sobre fondo gris (B5).
     Hazlas con tu generación de imágenes. Si no puedes, usa la pestaña
     "Image" de Tripo (cuesta créditos) o la cadena de 11.3.
+    - Pestaña "Image": modelo "GPT Image" con el prompt del Anexo B. Su
+      coste cuenta en el tope del asset (6.4).
+    - Para la multivista, recorta la hoja en 4 PNG SEPARADOS (≥ 1024 px,
+      mismo encuadre y misma altura del personaje, ~85% del alto, fondo
+      gris liso, sin rótulos "FRONT", sin sombra en el suelo, sin armas;
+      capa, alas y pelo largo van aparte, 11.3).
+    - Las 4 vistas deben ser el MISMO personaje (colores, piezas,
+      proporciones): una vista incoherente tira la generación. Las vistas
+      3/4 o superior de B3 NO van en las casillas laterales.
+    - Lados: si el diseño es simétrico, la convención izquierda/derecha
+      no importa. Si es asimétrico y la Fase 3 no la confirmó, quita la
+      asimetría de la referencia y añádela después como pieza aparte.
   - Apunta el saldo de créditos que se ve arriba en Tripo (p. ej. "14765")
     ANTES de cada generación, y otra vez DESPUÉS.
 
@@ -203,46 +415,141 @@ todo R1, R2, R3, R4, R5, R6 y R8.
       assets_src\referencias\ejemplos_flujo_tripo\)
   - PERSONAJES y criaturas:
     - Model → "Smart Mesh" → entrada multivista (4 casillas: frente,
-      izquierda, espalda, derecha).
-    - AI Model "P2.0", Topology QUAD, Polycount 25000.
-    - Number of Generation 1 o 2.
-    - Revisa la MALLA BLANCA en el visor. Si una zona está mal, usa
-      "Edit Mesh" (como máximo 3 veces). Si está bien, pulsa "Texture".
+      izquierda, espalda, derecha). El frente es obligatorio; mejor una
+      casilla vacía que una vista que no coincide.
+    - AI Model "P2.0", Topology QUAD. En Quad, Polycount cuenta caras de
+      4 lados (≈ 2 triángulos): Polycount = triángulos de LOD0 (8.3) ÷ 2.
+        Admin/jugador 10000-12000 · NPC 5000-9000 · monstruo 3000-7500 ·
+        jefe 12000-20000.
+      NUNCA 25000: saldrían ~50k triángulos e import_clean.py falla con
+      más de 25k (11.4 A; la API usa face_limit 10000). En el primer
+      asset cuenta los triángulos reales en Blender y ajusta.
+    - Texture OFF al generar (si el interruptor existe): primero la malla
+      blanca; se texturiza SOLO la elegida (Anexo C, "Ahorro").
+    - Number of Generation 2 en la primera ronda (= 2 generaciones, cobra
+      el doble, ~200). Una 3.ª solo con una referencia MEJORADA, nunca
+      la misma imagen otra vez "a ver si sale".
+    - QA DE MALLA BLANCA antes de pagar textura (11.4 A): exporta cada
+      candidato en GLB sin textura, render matcap de frente y 3/4 en
+      Blender, face_metrics.py M1 y M4, y silhouette_iou.py contra la
+      referencia (≥ 0,85). Razas no humanas y criaturas: M4 y silueta.
+      Si ninguno pasa, no texturices: mejora la referencia o Plan B.
+    - "Edit Mesh": como máximo 1 vez por asset y solo para defectos
+      locales FUERA del rostro (dedos fundidos, hueco, pieza pegada).
+      Después repite M1 y M4. El rostro se arregla con R1-R3, no aquí.
+    - "Texture" sobre el elegido: Texture Quality 2K (el juego usa
+      1024/2048; 4K solo gasta), PBR ON, Remove Lighting ON (sin él
+      pbr_check falla el delight). Imagen guía: la vista frontal.
+    - Tras descargarlo: protocolo de rostro completo (11.4 D-E), M1-M9 y
+      puntuación S. R1 (project_face.py) y R2 (eye_mask.py) son locales y
+      GRATIS: agótalos antes de volver a gastar en Tripo. R3 (máx. 1):
+      busto con "HD Model" + Texture (~75) desde el frente de la hoja de
+      rostro, solo para reproyectar la textura.
   - PROPS y escenario:
-    - Model → "HD Model", AI Model "H3.1 – Best Quality".
-    - Geometry & Texture: Ultra Mesh Quality ON en los protagonistas,
-      Texture ON, Texture Quality 2K (4K solo en protagonistas), Remove
-      Lighting ON, PBR ON.
-    - Topology Triangle, Polycount ~40000 (después se reduce con LODs).
-  - "Rig" de Tripo: puedes usarlo en bípedos si exporta un esqueleto
-    compatible con Mixamo. Si no, rig con el pipeline (11.5 del maestro).
-  - Privacidad: déjala como esté. NUNCA publiques ni compartas modelos en
-    "Creator Hub" ni en sitios públicos.
+    - Model → "HD Model", AI Model "H3.1 – Best Quality", entrada de una
+      imagen (B5), Number of Generation 1.
+    - Geometry & Texture, 1.ª pasada: Ultra Mesh Quality ON solo en
+      protagonistas (sube el coste: lee el botón) y Texture OFF.
+    - Revisa la malla blanca (silueta contra la referencia, sin agujeros
+      ni base deforme). Solo la elegida pasa a "Texture": Texture Quality
+      2K (4K solo en protagonistas vistos de cerca: fuente, estatua,
+      puerta, coloso), Remove Lighting ON, PBR ON.
+    - Topology Triangle. Polycount ≈ 2-3 veces el LOD0 de 8.3 (prop
+      grande ~20000, pequeño ~5000, edificio héroe o coloso ~40000).
+      optimize.mjs deja el LOD0 DENTRO del presupuesto de 8.3: los LODs
+      solos no bastan. Después, pbr_check.mjs y lod_check.mjs (11.9).
+  - "Rig" de Tripo es la ruta PRINCIPAL de 11.5, pero solo sobre el
+    modelo FINAL (texturizado y con la QA de rostro pasada):
+    - Bípedos: esqueleto humanoide; FBX con nombres Mixamo si el diálogo
+      lo ofrece.
+    - Cuadrúpedos y otros: su tipo de esqueleto y el preset "walk" (ruta
+      principal de monstruos, 11.6 y 11.10).
+    - Valida SIEMPRE con rig_check.py y pose_test_render.py. Si falla,
+      autorig.py (gratis). El Rig cuenta en el tope del asset.
+  - "Segment", "Retopo" y "Smart UV" gastan créditos: solo como respaldo
+    cuando la herramienta local ya falló (split_outfit.py en armaduras;
+    make_lods.py y optimize.mjs en LODs; xatlas en M7, 11.4 E).
+  - Privacidad: NUNCA pulses Publish, Share, "Creator Hub", Community ni
+    Remix, ni subas modelos o capturas a sitios públicos. Si al generar
+    hay un interruptor Private gratis, actívalo; si exige pagar, déjalo
+    y anótalo. No cambies otros ajustes de la cuenta.
 
   6.3 EXPORTAR Y GUARDAR
-  - Export → GLB. Si es quad y solo ofrece FBX, usa FBX.
+  - Export (si el diálogo muestra un coste, anótalo y cuenta en el tope):
+    - Smart Mesh (Quad): FBX (conserva los quads para rig y pesos) y
+      también GLB (texturas embebidas). Con Rig: FBX con esqueleto y GLB
+      con las animaciones. Props: GLB.
+    - Nunca OBJ, STL ni USDZ: pierden PBR, rig o animación.
+    - El navegador descarga en su carpeta de Descargas: CÓPIALO
+      (Copy-Item, no Move-Item) a tripo_raw; no borres nada fuera de
+      D:\IA_juego (sección 8). Comprueba que abre en Blender.
+    - Si una descarga falla o hace falta otro formato, re-exporta desde
+      el historial de Tripo; NUNCA regeneres para eso.
   - Guarda en D:\IA_juego\assets_src\tripo_raw\<asset_id>\, junto con
     tripo_<asset_id>.json:
       { asset_id, fecha, tipo (personaje|criatura|prop), modo (Smart Mesh
-        P2.0 | HD Model H3.1), ajustes, imagen_referencia, generaciones,
-        ediciones, creditos_antes, creditos_despues, archivo, notas }
+        P2.0 | HD Model H3.1), ajustes (topologia, polycount, ultra,
+        texture_quality, pbr, remove_lighting), imagen_referencia,
+        nombre_en_historial_tripo (para re-exportar sin regenerar),
+        operaciones: [ { op (generate|edit_mesh|texture|rig|segment|
+          retopo|smart_uv|image|export), coste_boton, saldo_antes,
+          saldo_despues } ],
+        candidatos: [ { archivo, M1, M4, iou } ], elegido,
+        metricas_finales (M1-M9 y S), decision, notas }
+  - Cada operación añade una línea a assets_src\tripo_raw\creditos_web.jsonl
+    y a docs\qa\pipeline_log.jsonl (11.1). Si saldo_antes − saldo_despues
+    difiere > 20% de coste_boton, usa el coste real en adelante.
   - Después "pnpm assets:build" (o los scripts de la Fase 3) lo procesa:
-    limpieza, rostro, rig, LODs, KTX2 y manifest. Registra el gasto en
-    ESTADO.json.tripo y la licencia en LICENCIAS_ASSETS.md (generado con
-    la cuenta del usuario).
+    limpieza, rostro, rig, LODs, KTX2 y manifest. Actualiza
+    ESTADO.json.tripo (gastado_web, presupuesto_web, saldo_web) y la FICHA.
+  - LICENCIAS_ASSETS.md: "Tripo Studio, cuenta del usuario, plan <el que
+    muestre la web>" y la licencia de ese plan según la página de precios
+    de Tripo (míralo sin comprar nada). Si es pública o CC BY, va en los
+    créditos del juego (11.12) y en "Opcional para ti".
 
   6.4 LÍMITES DE CRÉDITOS (no te los saltes)
-  - Presupuesto de la sesión = TRIPO_WEB_BUDGET de .env. Si no existe:
-    1500 créditos por sesión.
-  - Reserva: nunca bajes el saldo por debajo del 10% de lo que había al
-    empezar la sesión.
-  - Por asset:
-    | Tipo                     | Límite                                    |
-    | Personaje o criatura     | 3 generaciones + 3 Edit Mesh + 2 texturas;|
-    |                          | ≤ 400 créditos                            |
-    | Prop                     | 2 generaciones + 1 textura                |
-  - Si un asset no pasa la QA dentro del límite: se queda el mejor como
-    "provisional", se registra una D-### y pasas al siguiente.
+  - Presupuesto TOTAL de Dot = TRIPO_WEB_BUDGET de .env (si no existe:
+    1500). Es ACUMULADO: no se renueva con cada "continúa" ni con cada
+    sesión. Lleva la cuenta en docs\TRIPO_GASTO_WEB.md (una línea por
+    generación: fecha, asset, saldo antes y después), súmala también a
+    ESTADO.json.tripo.gastado y para al llegar al tope.
+  - Si además existe TRIPO_CREDIT_BUDGET (tope global, 2.1 del maestro),
+    lo gastado por web y por API cuenta para ese tope.
+  - Reserva: nunca bajes el saldo por debajo del 10% del saldo que
+    anotaste la PRIMERA vez.
+  - ANTES de cada clic que gasta (Generate, Edit Mesh, Texture, Rig,
+    Image...), lee el coste que muestra el botón. Si supera lo que queda
+    del tope, NO pulses.
+  - Un solo clic. Si la página parece colgada, espera y recarga el
+    historial; nunca vuelvas a pulsar (se cobra otra vez). "Retry" y
+    "Regenerate" también cobran.
+  - Si aparece "créditos insuficientes", "Upgrade" o un pago: cierra sin
+    aceptar (sección 8) y trátalo como presupuesto agotado.
+  - Costes vistos en la web (manda el botón): Smart Mesh ≈ 100 por
+    generación, HD Model ≈ 45, Texture ≈ 30. Edit Mesh, Rig, Image y el
+    resto: lee el botón la primera vez y anótalo (6.3).
+  - Por asset: máximo de operaciones Y tope de créditos; manda lo que
+    llegue antes. En la web rige esta tabla, no el 300 por defecto de
+    TRIPO_MAX_CREDITS_CHAR (11.4); si ese valor está en .env, usa el menor.
+    | Tipo                     | Operaciones máximas            | Tope   |
+    | Admin / personaje P0     | 3 gen. + 2 Texture + 1 Edit    | 450    |
+    |                          | Mesh + 1 R3 (busto) + Rig      |        |
+    | Monstruo, NPC, criatura  | 2 gen. + 1 Texture (+1 si      | 300    |
+    |                          | fallan M5/M6) + Rig            |        |
+    | Prop protagonista (Ultra | 2 gen. sin textura + 1 Texture | 180    |
+    | Mesh, 4K)                |                                |        |
+    | Prop o roca madre        | 2 gen. sin textura + 1 Texture | 130    |
+    |                          | 2K                             |        |
+    Lo que no quepa en el tope va por la ruta local gratuita (autorig.py,
+    Plan B). Típico: Admin 2 gen. + 1 Texture = 230; con 1500 caben el
+    Admin, unos 3 monstruos y la fuente.
+  - Si un asset no pasa la QA dentro del límite (11.4 E y 11.1, paso 7):
+    - Personajes: el mejor que pase las DURAS (M1, M2, M3, M4 y M7) queda
+      "provisional" con D-### y DT. Si ninguno las pasa: PLAN B (MPFB2,
+      sin créditos) con la armadura de Tripo en piezas rígidas.
+    - Resto: todos los criterios ≥ 6 → "provisional" con DT; alguno < 6
+      → stub con DT.
+    - En ambos casos pasas al siguiente asset.
   - Con el presupuesto agotado: termina en el pipeline lo ya descargado
     y sigue con tareas que no usen Tripo.
 
@@ -260,8 +567,16 @@ todo R1, R2, R3, R4, R5, R6 y R8.
 ################################################################################
 ## 7. BLENDER (ya instalado)
 ################################################################################
-  - Detecta blender.exe en "C:\Program Files\Blender Foundation\*" o con
-    Get-Command, y guarda la ruta en .env como BLENDER_PATH.
+  - Detecta blender.exe:
+      Get-ChildItem 'C:\Program Files\Blender Foundation\*\blender.exe'
+    o Get-Command blender, o Steam (...\steamapps\common\Blender). Con
+    varias, la 4.5 LTS (la del maestro); si solo hay otra y un script
+    falla por la API, instala la 4.5 portable (3.3) y regístralo. Guarda
+    la ruta en .env como BLENDER_PATH (fusionando, sin BOM).
+  - .env NO llena $env por sí solo. Cada comando que use Blender empieza
+    cargándola:
+      $env:BLENDER_PATH = ((Get-Content -LiteralPath D:\IA_juego\.env |
+        Select-String '^BLENDER_PATH=').Line -split '=',2)[1].Trim('" ');
   - Úsalo SIEMPRE en modo headless con scripts:
       & $env:BLENDER_PATH -b --factory-startup --python-exit-code 1
         -P tools\blender\<script>.py -- <args>
@@ -287,21 +602,51 @@ todo R1, R2, R3, R4, R5, R6 y R8.
     DECISIONES.md).
   - Trabajar mientras otro agente tiene el candado activo (sección 3,
     paso 0).
+  - Destruir trabajo dentro de D:\IA_juego: git clean, git reset --hard,
+    git checkout/restore sobre cambios sin commit, git push --force,
+    reescribir la historia, robocopy /MIR o /PURGE, o Remove-Item
+    -Recurse sobre la raíz o carpetas que no creaste en esta sesión.
+  - Poner VALORES de secretos (.env, .env.admin, ADMIN_PASSWORD, claves
+    tsk_, cookies o tokens del navegador) en docs\, logs, historial,
+    capturas, commits o entregas. Al revisar .env, muestra solo los
+    NOMBRES de las claves. Nunca exportes la sesión de Tripo.
 
 ################################################################################
 ## 9. ENTREGAS E INFORME
 ################################################################################
-  - Al cerrar cada fase, y SIEMPRE antes de terminar tu sesión, crea:
+  - Al cerrar cada fase, cada ~3 h de trabajo (no sabes cuándo cortarán
+    tu sesión) y antes de terminar, crea:
       D:\IA_juego\entregas\DOT_<AAAA-MM-DD>_<HHmm>.zip
-    con el proyecto completo. Excluye: node_modules, dist, .env,
-    .env.admin, logs, .run, assets_src\audio_raw\_cache y entregas.
+    con el proyecto completo, .git incluido. Excluye: node_modules, dist,
+    .env, .env.admin, logs, .run, assets_src\audio_raw\_cache y entregas.
+    Excluye además: .env.bak*, *.key, *.pfx, test-results y
+    playwright-report (las trazas guardan el login del Admin), y los
+    crudos cuya licencia prohíbe redistribuirlos: assets_src\audio_raw\
+    (Sonniss) y assets_src\mixamo\. Antes copia
+    audio_raw\_licenses.jsonl a docs\licencias\ para poder volver a
+    descargarlos.
+    Con 7-Zip (o tar.exe), nunca con Compress-Archive (se salta .git por
+    ser oculta y falla con archivos de más de 2 GB):
+      & 'C:\Program Files\7-Zip\7z.exe' a -tzip '<zip>' 'D:\IA_juego\*'
+        '-xr!node_modules' '-xr!dist' '-x!.env' '-x!.env.admin' '-x!logs'
+        '-x!.run' '-x!entregas' '-x!assets_src\audio_raw\_cache' -bd
+    Sin 7-Zip, con Set-Location D:\IA_juego en el mismo comando:
+      tar.exe -a -cf '<zip>' --exclude=node_modules --exclude=dist
+        --exclude=./.env --exclude=./.env.admin --exclude=./logs
+        --exclude=./.run --exclude=./entregas
+        --exclude=./assets_src/audio_raw/_cache .
+    Si D: tiene menos de 40 GB libres, solo la entrega final.
   - Dentro del zip va docs\ENTREGA_<AAAA-MM-DD_HHmm>.md con:
     - Qué hiciste y qué fases cerraste.
     - Assets nuevos de Tripo y créditos gastados.
     - Qué falta y siguiente_paso.
     - Cómo restaurar (secciones 3 y 4 de este prompt).
-  - Comprueba el zip con Expand-Archive en una carpeta temporal y luego
-    borra esa carpeta.
+    - Lo que NO viaja (secretos, crudos de Sonniss y Mixamo, LFS si se
+      excluyó) y cómo recuperarlo. Solo nombres, nunca valores.
+  - Comprueba el zip SIN extraerlo ($LASTEXITCODE 0):
+      & 'C:\Program Files\7-Zip\7z.exe' t '<zip>'
+    o tar.exe -tf '<zip>'. En su lista deben estar package.json,
+    docs\ESTADO.json, docs\ENTREGA_*.md y .git\HEAD.
   - Actualiza docs\INFORME_PARA_EL_USUARIO.md (lo más reciente arriba):
     - Qué se puede ver y probar, con capturas.
     - Créditos de Tripo gastados.
@@ -309,11 +654,33 @@ todo R1, R2, R3, R4, R5, R6 y R8.
     - "Opcional para ti".
   - Haz commit con git en cada tarea (2.5 del maestro), si el repositorio
     existe. Si no existe, git init según la Fase 0.
+  - Antes del primer commit, .gitignore debe incluir, además de lo de la
+    Fase 0 (siempre con "/"):
+      /entregas/  .env.bak*  test-results/  playwright-report/
+    Los zips de entregas\ (el respaldo lleva .env dentro) son binarios:
+    secret-scan no mira dentro de un zip. Revisa "git status --porcelain"
+    antes de cada "git add"; si en el stage aparece un .zip, .env* o
+    .bak, sácalo con "git rm --cached" y corrige .gitignore. Si ya hay
+    secretos en la historia, NO la reescribas: DT crítica y, en
+    "Opcional para ti", qué claves rotar (solo sus nombres).
+  - Además:
+    - Comprueba que /entregas/ se ignora: git check-ignore -v entregas/x.zip
+    - Si git avisa de "dubious ownership" (archivos de otro usuario o de
+      otra máquina): git config --global --add safe.directory D:/IA_juego
+    - Autor local: git config user.name "Dot" y
+      git config user.email dot@localhost
 
 ################################################################################
 ## 10. PRIMERA ACCIÓN
 ################################################################################
-  1. Sección 3: candado, respaldo, extracción y restauración.
+  1. ¿Es una reanudación ("continúa", sesión nueva, corte)? Si ya existe
+     docs\DIAGNOSTICO_DOT_*.md o logs\agente\historial.jsonl contiene
+     "retomado por Dot": NO repitas las secciones 3 y 4 (restaurar otra
+     vez pisaría tu trabajo). Haz solo el paso previo y el paso 0 de la
+     sección 3, el ARRANQUE de 2.6 del maestro (AGENTS.md → ESTADO.json
+     → git status) y ejecuta siguiente_paso.
+     Si no: sección 3 completa (paso previo, candado, respaldo,
+     extracción y restauración).
   2. Sección 4: diagnóstico. Escribe DIAGNOSTICO_DOT_<fecha>.md.
   3. Sección 5: retoma el prompt maestro desde el punto que diga el
      diagnóstico, con las prioridades de 5.5.
